@@ -42,7 +42,7 @@ export default function Home() {
         <video
           ref={videoRef}
           className="absolute top-0 left-0 w-full h-full object-cover z-0"
-          src="/videos/ClaseIntro.mp4"  // Aquí la ruta relativa desde public
+          src="https://www.dropbox.com/scl/fi/culbeecdd0wetmhbpwd9h/Clase-0-Intro-CTPDD-Records.mp4?rlkey=vimosfxjle16xtw3i53g1ouxx&st=utfsoqxe&dl=1"  // Aquí la ruta relativa desde public
           controls
           playsInline
         />
