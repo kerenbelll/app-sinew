@@ -46,3 +46,7 @@ backend/protected-pdfs/
 
 # videos grandes fuera del repo\ npublic/videos/*.mp4
 public/videos/*.mov
+
+# videos grandes
+public/videos/*.mp4
+public/videos/*.mov
