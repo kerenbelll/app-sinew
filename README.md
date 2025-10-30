@@ -83,6 +83,9 @@ Full Stack Developer — Project Lead en SINEW
 📧 info@sineworg.com
 📍 Buenos Aires, Argentina
 
+🔗 Proyecto en GitHub: [github.com/kerenbelll/app-sinew](https://github.com/kerenbelll/app-sinew)
+🌐 Sitio en producción: [www.sineworg.com](https://www.sineworg.com)
+
 👥 Equipo SINEW
 
 Proyecto institucional de SINEW — Plataforma integral de formación y comunidad
