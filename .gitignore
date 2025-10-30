@@ -43,3 +43,6 @@ frontend/dist/
 frontend/.env*
 backend/.env
 backend/protected-pdfs/
+
+# videos grandes fuera del repo\ npublic/videos/*.mp4
+public/videos/*.mov
