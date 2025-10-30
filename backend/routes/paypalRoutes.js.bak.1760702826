@@ -1,0 +1,215 @@
+// backend/routes/paypalRoutes.js
+import express from "express";
+import paypal from "@paypal/checkout-server-sdk";
+import crypto from "crypto";
+import dotenv from "dotenv";
+
+import Purchase from "../models/Purchase.js";
+import DownloadToken from "../models/DownloadToken.js";
+import User from "../models/User.js";
+import CourseAccess from "../models/CourseAccess.js";
+import { sendPurchaseEmail, sendCourseAccessEmail } from "../utils/mailer.js";
+
+dotenv.config();
+const router = express.Router();
+
+/* =========================
+   Config
+   ========================= */
+const PAYPAL_ENV = String(process.env.PAYPAL_ENV || "sandbox").toLowerCase();
+const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+const hasPaypalCreds = !!process.env.PAYPAL_CLIENT_ID && !!process.env.PAYPAL_CLIENT_SECRET;
+
+const clientId = process.env.PAYPAL_CLIENT_ID || "MISSING";
+const clientSecret = process.env.PAYPAL_CLIENT_SECRET || "MISSING";
+const environment =
+  PAYPAL_ENV === "live"
+    ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+    : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+const paypalClient = new paypal.core.PayPalHttpClient(environment);
+
+console.log(`[BOOT][paypalRoutes] mode=${PAYPAL_ENV} | PAYPAL=${hasPaypalCreds ? "OK" : "MISSING"}`);
+
+/* =========================
+   Fulfillment helpers
+   ========================= */
+async function fulfillCourseAccess({ userId, email, name, courseSlug, courseTitle }) {
+  if (!courseSlug) return null;
+
+  await CourseAccess.updateOne(
+    { userId, courseSlug },
+    { $set: { userId, courseSlug, provider: "paypal", grantedAt: new Date() } },
+    { upsert: true }
+  );
+
+  const courseUrl = `${FRONTEND_URL}/cursos/${courseSlug}?paid=1`;
+
+  if (email) {
+    try {
+      console.log("[diag] PayPal: intentando enviar mail curso…", { to: email, courseSlug });
+      const r = await sendCourseAccessEmail({
+        toEmail: email,
+        buyerName: name || "Alumno",
+        courseTitle,
+        courseUrl,
+      });
+      console.log("[diag] PayPal: resultado mailer curso:", r);
+    } catch (mailErr) {
+      console.error("[Email] acceso curso error:", mailErr?.message || mailErr);
+    }
+  }
+  return { courseUrl };
+}
+
+async function fulfillBookDownload({ userId, email, name }) {
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  await DownloadToken.create({ userId, token, expiresAt, used: false });
+
+  // Redirigimos al frontend, que maneja el autodownload/UX
+  const redirectTo = `${FRONTEND_URL}/gracias?status=success&download=${encodeURIComponent(token)}`;
+
+  if (email) {
+    try {
+      console.log("[diag] PayPal: intentando enviar mail libro…", { to: email });
+      const r = await sendPurchaseEmail({
+        toEmail: email,
+        buyerName: name || "Buyer",
+        downloadLink: redirectTo,
+      });
+      console.log("[diag] PayPal: resultado mailer:", r);
+    } catch (e) {
+      console.error("[Email] libro error:", e?.message || e);
+    }
+  }
+  return { redirectTo };
+}
+
+/* =========================
+   Rutas
+   ========================= */
+router.get("/ping", (_req, res) => {
+  res.json({ ok: true, mode: PAYPAL_ENV, paypal: hasPaypalCreds });
+});
+
+/* Crear orden */
+router.post("/create-order", async (req, res) => {
+  try {
+    if (!hasPaypalCreds) return res.status(500).json({ error: "PayPal no configurado" });
+
+    const valueNum  = Number(req.body?.price || 13);
+    const value     = valueNum > 0 ? valueNum.toFixed(2) : "13.00";
+    const currency  = (req.body?.currency || "USD").toUpperCase();
+    const title     = req.body?.title || "Producto SINEW";
+    const metadata  = req.body?.metadata || {}; // { courseSlug?: string }
+    const customId  = metadata?.courseSlug ? `course:${metadata.courseSlug}` : "libro-001";
+
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: "CAPTURE",
+      purchase_units: [
+        {
+          amount: { currency_code: currency, value },
+          description: title,
+          custom_id: customId, // ← distingue curso vs libro en capture
+        },
+      ],
+      application_context: {
+        user_action: "PAY_NOW",
+        brand_name: "SINEW",
+      },
+    });
+
+    const order = await paypalClient.execute(request);
+    return res.status(201).json({ id: order.result.id });
+  } catch (err) {
+    console.error("[PayPal] createOrder error:", err?.message || err);
+    return res.status(500).json({ error: "Error creando orden PayPal" });
+  }
+});
+
+/* Capturar orden */
+router.post("/capture-order", async (req, res) => {
+  try {
+    if (!hasPaypalCreds) return res.status(500).json({ error: "PayPal no configurado" });
+
+    const { orderID, email: emailFromBody, name: nameFromBody, courseSlug: courseSlugBody } = req.body || {};
+    if (!orderID) return res.status(400).json({ error: "Falta orderID" });
+
+    // 1) Validar estado actual (APPROVED) antes de capturar
+    const getReq = new paypal.orders.OrdersGetRequest(orderID);
+    const before = await paypalClient.execute(getReq);
+    if (before.result?.status !== "APPROVED") {
+      return res.status(400).json({ success: false, error: "Orden no aprobada" });
+    }
+
+    // 2) Capturar
+    const capReq = new paypal.orders.OrdersCaptureRequest(orderID);
+    capReq.requestBody({});
+    const capture = await paypalClient.execute(capReq);
+
+    if (capture?.result?.status !== "COMPLETED") {
+      return res.status(400).json({ success: false, error: "Pago no completado" });
+    }
+
+    // 3) Datos de la orden
+    const pu = capture.result.purchase_units[0];
+    const cap = pu.payments.captures[0];
+    const amountValue    = cap.amount.value;
+    const amountCurrency = cap.amount.currency_code;
+
+    const payer       = capture.result.payer || {};
+    const paypalEmail = payer.email_address;
+    const paypalName  = [payer?.name?.given_name, payer?.name?.surname].filter(Boolean).join(" ");
+
+    // Detección de curso (custom_id) + fallback por body
+    const customId             = pu.custom_id || "";
+    const courseSlugFromCustom = customId.startsWith("course:") ? customId.split(":")[1] : null;
+    const courseSlug           = courseSlugFromCustom || courseSlugBody || null;
+
+    const finalEmail = emailFromBody || paypalEmail;
+    const finalName  = nameFromBody || paypalName || "Buyer";
+
+    // 4) Upsert user si tenemos email
+    let userId;
+    if (finalEmail) {
+      let user = await User.findOne({ email: finalEmail });
+      if (!user) user = await User.create({ name: finalName, email: finalEmail, passwordHash: "TEMP" });
+      userId = user._id;
+    }
+
+    // 5) Registrar compra
+    await Purchase.create({
+      userId,
+      bookId: courseSlug ? undefined : "libro-001",
+      price: Number(amountValue),
+      currency: amountCurrency,
+      status: "paid",
+      provider: "paypal",
+      orderId: orderID,
+      purchaseDate: new Date(),
+      metadata: { courseSlug },
+    });
+
+    // 6) Fulfillment + respuesta
+    if (courseSlug) {
+      await fulfillCourseAccess({
+        userId,
+        email: finalEmail,
+        name: finalName,
+        courseSlug,
+        courseTitle: pu.description,
+      });
+      return res.json({ success: true, redirectTo: `${FRONTEND_URL}/cursos/${courseSlug}?paid=1` });
+    } else {
+      const { redirectTo } = await fulfillBookDownload({ userId, email: finalEmail, name: finalName });
+      return res.json({ success: true, redirectTo });
+    }
+  } catch (err) {
+    console.error("[PayPal] captureOrder error:", err?.message || err);
+    return res.status(500).json({ success: false, error: "Error capturando pago" });
+  }
+});
+
+export default router;
