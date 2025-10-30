@@ -50,3 +50,6 @@ public/videos/*.mov
 # videos grandes
 public/videos/*.mp4
 public/videos/*.mov
+
+frontend/public/videos/
+*.mp4
