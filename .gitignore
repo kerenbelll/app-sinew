@@ -36,3 +36,10 @@ frontend/dist/
 frontend/.env*
 backend/.env
 backend/protected-pdfs/
+
+# Front/Back ignores
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+backend/.env
+backend/protected-pdfs/
