@@ -33,43 +33,49 @@ function mask(s) {
     ? 'resend'
     : (SMTP_HOST && SMTP_USER && SMTP_PASS ? 'smtp' : 'none');
   console.log(`[MAILER] loaded ${MAILER_VERSION}`);
-  console.log(`[MAILER] provider=${provider} | FROM="${FROM_EMAIL}"${RESEND_KEY ? ` | RESEND_API_KEY=${mask(RESEND_KEY)}` : ''}`);
+  console.log(
+    `[MAILER] provider=${provider} | FROM="${FROM_EMAIL}"${
+      RESEND_KEY ? ` | RESEND_API_KEY=${mask(RESEND_KEY)}` : ''
+    }`
+  );
 })();
 
 /* ===================== Estilos/Token de diseño ===================== */
 const T = {
-  pageBg: 'linear-gradient(180deg,#f8fbff 0%,#f2f9ff 40%,#ffffff 100%)',
-  cardBg: '#ffffff',
-  text: '#0f172a',     // slate-900
-  dim: '#334155',      // slate-700
-  hairline: '#e6eef5',
-  ctaA: '#06beb6',
-  ctaB: '#48b1bf',
-  shadow: '0 14px 42px rgba(2, 6, 23, .08)',
+  pageBg: 'linear-gradient(180deg,#0b1222 0%,#0d1b2a 45%,#121a2f 100%)',
+  cardBg: '#0f172a',
+  surface: '#0b1222',
+  text: '#e2e8f0',
+  dim: '#94a3b8',
+  hairline: 'rgba(255,255,255,0.08)',
+  ctaA: '#98f5e1',
+  ctaB: '#c1fff4',
+  shadow: '0 24px 80px rgba(0,0,0,.45)',
+  font: "'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  logoW: 120,
 };
 
 /* ===================== CTA bulletproof (con VML para Outlook) ===================== */
 function bulletproofButton(href, label) {
-  const width = 260;
-  const height = 46;
+  const w = 280, h = 48, r = 14;
   return `
   <!--[if mso]>
-    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml"
-      href="${href}" arcsize="12%" strokecolor="${T.ctaA}" fillcolor="${T.ctaA}"
-      style="height:${height}px;v-text-anchor:middle;width:${width}px;">
+    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${href}"
+      style="height:${h}px;v-text-anchor:middle;width:${w}px;" arcsize="${r}%"
+      strokecolor="${T.ctaA}" fillcolor="${T.ctaA}">
       <w:anchorlock/>
-      <center style="color:#ffffff;font-family:Segoe UI, Arial, sans-serif;font-size:16px;font-weight:700;">
+      <center style="color:#0b1222;font-family:Segoe UI, Arial, sans-serif;font-size:16px;font-weight:700;">
         ${label}
       </center>
     </v:roundrect>
   <![endif]-->
   <!--[if !mso]><!-- -->
-    <a href="${href}" target="_blank" rel="noreferrer"
-       style="display:inline-block;min-width:${width}px;line-height:${height}px;height:${height}px;
-              padding:0 20px;border-radius:12px;text-decoration:none;text-align:center;
-              font:700 16px 'Segoe UI',Arial,sans-serif;color:#ffffff;
+    <a href="${href}" target="_blank" rel="noopener"
+       style="display:inline-block;min-width:${w}px;height:${h}px;line-height:${h}px;padding:0 18px;
+              border-radius:${r}px;text-decoration:none;text-align:center;
+              font:700 16px ${T.font};color:#0b1222;
               background:linear-gradient(135deg,${T.ctaA},${T.ctaB});
-              box-shadow:0 8px 22px rgba(6,190,182,.25);">
+              box-shadow:0 10px 30px rgba(152,245,225,.28)">
       ${label}
     </a>
   <!--<![endif]-->`;
@@ -81,40 +87,49 @@ function baseContainer(innerHtml, { preheader = '', title = '' } = {}) {
   const { LOGO_URL } = env();
 
   return `
-  <div style="margin:0;padding:24px;background:${T.pageBg};
-              color-scheme:light;supported-color-schemes:light;">
-    <!-- Preheader (oculto en cuerpo, visible en preview de inbox) -->
-    <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">
+  <div style="margin:0;padding:32px;background:${T.pageBg};
+              color-scheme:dark;supported-color-schemes:dark;">
+    <!-- Preheader oculto -->
+    <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden">
       ${preheader}
     </div>
 
     <center>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
-             style="max-width:680px;margin:0 auto;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:720px;margin:0 auto">
         <tr>
-          <td align="center" style="padding:8px 8px 14px 8px;">
-            <img src="${LOGO_URL}" alt="SINEW" width="120"
-                 style="display:block;border:0;outline:none;text-decoration:none;margin:0 auto;">
+          <td align="left" style="padding:0 12px 18px">
+            <img src="${LOGO_URL}" alt="SINEW" width="${T.logoW}"
+                 style="display:block;border:0;outline:none;margin:0">
           </td>
         </tr>
 
         <tr>
-          <td align="center" style="padding:0 12px 24px 12px;">
+          <td style="padding:0 12px">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
-                   style="background:${T.cardBg};border:1px solid ${T.hairline};border-radius:16px;box-shadow:${T.shadow};">
+              style="background:${T.cardBg};border:1px solid ${T.hairline};border-radius:18px;box-shadow:${T.shadow};overflow:hidden">
+              <!-- Header “glass” -->
               <tr>
-                <td bgcolor="#ffffff" style="padding:28px 28px 8px 28px;">
-                  ${title ? `<h1 style="margin:0 0 8px;font:700 22px 'Segoe UI',Arial,sans-serif;color:${T.text};">${title}</h1>` : ''}
-                  <div style="font:400 15px/1.7 'Segoe UI',Arial,sans-serif;color:${T.dim};">
-                    ${innerHtml}
-                  </div>
+                <td style="background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+                           border-bottom:1px solid ${T.hairline};padding:22px 28px">
+                  ${title ? `
+                    <h1 style="margin:0;font:700 22px/1 ${T.font};color:${T.text};letter-spacing:.2px">
+                      ${title}
+                    </h1>` : ''}
                 </td>
               </tr>
 
+              <!-- Body -->
               <tr>
-                <td style="padding:18px 28px 26px 28px;">
-                  <hr style="border:none;border-top:1px solid ${T.hairline};margin:0 0 14px 0;">
-                  <p style="margin:0;text-align:center;font:400 12px 'Segoe UI',Arial,sans-serif;color:#64748b;">
+                <td style="padding:26px 28px 8px">
+                  <div style="font:400 15px/1.75 ${T.font};color:${T.dim}">${innerHtml}</div>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="padding:22px 28px 26px">
+                  <hr style="border:none;border-top:1px solid ${T.hairline};margin:0 0 12px">
+                  <p style="margin:0;text-align:center;font:400 12px ${T.font};color:#9aa7b5">
                     © ${year} SINEW — Todos los derechos reservados.
                   </p>
                 </td>
@@ -129,19 +144,22 @@ function baseContainer(innerHtml, { preheader = '', title = '' } = {}) {
 }
 
 /* ===================== Plantillas ===================== */
-function purchaseTemplate({ buyerName = '', downloadLink }) {
-  const name = (buyerName || '').trim() || 'Hola';
+function resetTemplate({ name = '', resetUrl }) {
+  const who = (name || '').trim() || 'Hola';
   const inner = `
-    <p style="margin:0 0 10px;color:${T.text}"><strong>${name}</strong>, ¡gracias por tu compra!</p>
-    <p style="margin:0 0 12px;">Tu enlace de descarga está listo. Es de <strong>un solo uso</strong> y vence en <strong>24 horas</strong>.</p>
+    <p style="margin:0 0 10px;color:${T.text};font-weight:600">${who}</p>
+    <p style="margin:0 0 14px">
+      Para restablecer tu contraseña, hacé clic en el botón. El enlace vence en <strong>1 hora</strong>.
+    </p>
     <div style="text-align:center;margin:22px 0 8px;">
-      ${bulletproofButton(downloadLink, 'Descargar ahora')}
+      ${bulletproofButton(resetUrl, 'Restablecer contraseña')}
     </div>
-    <p style="margin:14px 0 0;font-size:13px;">¿Problemas con la descarga? Respondé a este correo y te ayudamos.</p>
-  `;
+    <p style="margin:16px 0 0;font-size:13px;color:${T.dim}">
+      Si no solicitaste este cambio, podés ignorar este mensaje.
+    </p>`;
   return baseContainer(inner, {
-    preheader: 'Tu descarga está lista. Gracias por comprar en SINEW.',
-    title: 'Tu compra está lista',
+    preheader: 'Restablecé tu contraseña de SINEW (vence en 1 hora).',
+    title: 'Seguridad de tu cuenta',
   });
 }
 
@@ -163,19 +181,26 @@ function courseAccessTemplate({ buyerName = '', courseTitle = 'Tu curso', course
   });
 }
 
-function resetTemplate({ name = '', resetUrl }) {
-  const who = (name || '').trim() || 'Hola';
+/** NUEVO: plantilla para compra de libro (enlace de descarga) */
+function purchaseTemplate({ buyerName = '', downloadLink = '#' }) {
+  const name = (buyerName || '').trim() || '¡Hola!';
   const inner = `
-    <p style="margin:0 0 10px;color:${T.text}"><strong>${who}</strong></p>
-    <p style="margin:0 0 12px;">Para restablecer tu contraseña, hacé clic en el botón. El enlace vence en 1 hora.</p>
+    <p style="margin:0 0 10px;color:${T.text};font-weight:600">${name}</p>
+    <p style="margin:0 0 14px">
+      ¡Gracias por tu compra! Tu enlace de descarga (válido por <strong>24 horas</strong>) está abajo.
+    </p>
     <div style="text-align:center;margin:22px 0 8px;">
-      ${bulletproofButton(resetUrl, 'Restablecer contraseña')}
+      ${bulletproofButton(downloadLink, 'Descargar libro')}
     </div>
-    <p style="margin:14px 0 0;font-size:13px;">Si no solicitaste este cambio, ignorá este mensaje.</p>
+    <p style="margin:14px 0 0;font-size:13px;">
+      Si el botón no funciona, copiá y pegá esta URL en tu navegador:
+      <br/>
+      <span style="color:${T.ctaA};word-break:break-all">${downloadLink}</span>
+    </p>
   `;
   return baseContainer(inner, {
-    preheader: 'Solicitud de restablecimiento de contraseña',
-    title: 'Seguridad de tu cuenta',
+    preheader: 'Gracias por tu compra – Tu descarga está lista',
+    title: 'Tu descarga está lista',
   });
 }
 
@@ -213,6 +238,7 @@ async function sendViaResend({ to, subject, html, attachments }) {
   };
 
   if (attachments?.length) {
+    // Resend acepta Buffer -> base64
     payload.attachments = attachments.map(a => ({
       filename: a.filename,
       content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : a.content,
@@ -272,8 +298,9 @@ export async function sendPurchaseEmail({ toEmail, buyerName, downloadLink, invo
 }
 
 export async function sendCourseAccessEmail({ toEmail, buyerName, courseTitle, courseUrl }) {
-  const subject = `Acceso confirmado – ${courseTitle}`;
-  const html = courseAccessTemplate({ buyerName, courseTitle, courseUrl });
+  const safeTitle = courseTitle || 'Curso SINEW'; // 👈 evita "undefined"
+  const subject = `Acceso confirmado – ${safeTitle}`;
+  const html = courseAccessTemplate({ buyerName, courseTitle: safeTitle, courseUrl });
   return deliver({ to: toEmail, subject, html });
 }
 

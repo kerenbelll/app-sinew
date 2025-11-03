@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import logo from "../assets/img/A1.png";
 
-// Heroicons
+// Icons
 import {
   ArrowRightOnRectangleIcon,
   ArrowLeftStartOnRectangleIcon,
@@ -17,13 +17,32 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [isLandscapePhone, setIsLandscapePhone] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
   const drawerRef = useRef(null);
   const { user, logout } = useUser();
 
-  // Scroll listener (barra de progreso + estado scrolled)
+  // Detectar móvil en landscape para ajustar alturas/tamaños
+  useEffect(() => {
+    const mql = window.matchMedia("(orientation: landscape)");
+    const handler = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // Heurística: teléfonos en landscape suelen tener bajo alto (<= 500)
+      setIsLandscapePhone(mql.matches && h <= 500);
+    };
+    handler();
+    window.addEventListener("resize", handler);
+    mql.addEventListener?.("change", handler);
+    return () => {
+      window.removeEventListener("resize", handler);
+      mql.removeEventListener?.("change", handler);
+    };
+  }, []);
+
+  // Scroll (progreso y estado scrolled)
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -56,7 +75,7 @@ const Navbar = () => {
     };
   }, [isOpen]);
 
-  // Bloquear scroll del body cuando el drawer está abierto
+  // Bloquear scroll del body con drawer abierto
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
     if (isOpen) {
@@ -118,23 +137,18 @@ const Navbar = () => {
       );
     });
 
-  // === Fondo animado del header ===
-  // Interpolamos entre:
-  // - transparente (arriba de todo),
-  // - vidrio (scrolled),
-  // - sólido (drawer abierto).
+  // Fondo dinámico
   const bgColor = isOpen
-    ? "rgba(11, 18, 34, 1)" // sólido
+    ? "rgba(11, 18, 34, 1)"
     : scrolled
-    ? "rgba(5, 12, 38, 0.75)" // vidrio oscuro
-    : "rgba(0, 0, 0, 0)"; // transparente
-
+    ? "rgba(5, 12, 38, 0.75)"
+    : "rgba(0, 0, 0, 0)";
   const showBorder = isOpen || scrolled;
   const showShadow = isOpen || scrolled;
 
   return (
     <>
-      {/* Barra de progreso superior */}
+      {/* Barra de progreso */}
       <div
         className="fixed top-0 left-0 h-1 bg-mint z-[70] transition-[width]"
         style={{ width: `${scrollProgress}%` }}
@@ -144,24 +158,26 @@ const Navbar = () => {
         className={`fixed top-0 left-0 w-full z-[65] transition-all duration-500`}
         role="navigation"
         aria-label="Principal"
+        style={{
+          paddingTop: "max(0px, env(safe-area-inset-top))",
+        }}
       >
-        {/* Capa de fondo con transición suave */}
+        {/* Fondo */}
         <div
           className={`absolute inset-0 -z-10 backdrop-blur-md transition-all duration-500 ${
             showBorder ? "border-b border-white/10" : "border-b border-transparent"
           } ${showShadow ? "shadow-[0_8px_30px_rgba(0,0,0,0.28)]" : "shadow-none"}`}
-          style={{
-            backgroundColor: bgColor,
-          }}
+          style={{ backgroundColor: bgColor }}
           aria-hidden="true"
         />
 
         <div
-          className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center ${
-            scrolled || isOpen ? "h-20" : "h-24"
-          } transition-all`}
+          className={`max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 flex justify-between items-center transition-all ${
+            // Alturas más compactas en landscape phone
+            isLandscapePhone ? "h-14" : scrolled || isOpen ? "h-20" : "h-24"
+          }`}
         >
-          {/* Logo */}
+          {/* Logo (más chico en landscape phone) */}
           <Link
             to="/"
             className="flex items-center group"
@@ -178,15 +194,15 @@ const Navbar = () => {
             <img
               src={logo}
               alt="SINEW Logo"
-              className="h-20 w-auto transition-transform duration-300 group-hover:scale-[1.03] drop-shadow-[0_0_18px_rgba(152,245,225,0.25)]"
+              className={`w-auto transition-transform duration-300 group-hover:scale-[1.03] drop-shadow-[0_0_18px_rgba(152,245,225,0.25)]
+                ${isLandscapePhone ? "h-10" : "h-14 sm:h-16 lg:h-20"}`}
             />
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-8 font-medium">
+          {/* OJO: mantenemos hamburguesa también en landscape móvil (no usamos md:flex, sino lg:flex) */}
+          <nav className="hidden lg:flex items-center gap-8 font-medium">
             <div className="group flex items-center gap-8">{renderLinks(false)}</div>
 
-            {/* Botones de auth con iconos */}
             {!user ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -218,10 +234,10 @@ const Navbar = () => {
             )}
           </nav>
 
-          {/* Hamburguesa */}
+          {/* Hamburguesa (también para landscape móvil) */}
           <button
             onClick={toggleMenu}
-            className="md:hidden relative w-10 h-10 focus:outline-none"
+            className="lg:hidden relative w-10 h-10 focus:outline-none"
             aria-label="Abrir menú"
           >
             <span
@@ -248,21 +264,23 @@ const Navbar = () => {
           className={`fixed top-0 right-0 h-full w-72 bg-[#0b1222] text-white transform transition-transform duration-300 z-[70] border-l border-white/10 shadow-2xl ${
             isOpen ? "translate-x-0" : "translate-x-full"
           }`}
+          style={{ paddingTop: "max(0px, env(safe-area-inset-top))" }}
         >
           <div className="flex items-center justify-between p-4 border-b border-white/10">
             <div className="flex items-center gap-3">
               <img
                 src={logo}
                 alt="SINEW"
-                className="h-20 w-auto transition-transform duration-300 hover:scale-105 drop-shadow-[0_0_20px_rgba(152,245,225,0.35)]"
+                className="h-14 w-auto transition-transform duration-300 hover:scale-105 drop-shadow-[0_0_20px_rgba(152,245,225,0.35)]"
               />
             </div>
             <button
               onClick={closeMenu}
               aria-label="Cerrar menú"
-              className="text-white/80 hover:text-white"
+              className="text-white/80 hover:text-white text-2xl leading-none"
+              title="Cerrar"
             >
-              ✕
+              ×
             </button>
           </div>
 
@@ -309,7 +327,7 @@ const Navbar = () => {
         {/* Backdrop */}
         {isOpen && (
           <div
-            className="fixed inset-0 bg-black/70 z-[60] md:hidden transition-opacity duration-500"
+            className="fixed inset-0 bg-black/70 z-[60] lg:hidden transition-opacity duration-500"
             onClick={closeMenu}
           />
         )}

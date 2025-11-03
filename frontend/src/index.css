@@ -2,13 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply m-0 min-h-screen font-sans bg-white text-black;
+/* === Fuente alternativa para subtítulos o piezas hero === */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
+
+.font-alt {
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
+/* === Reseteo base y comportamiento global === */
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+
+body {
+  @apply m-0 min-h-screen font-sans bg-white text-black;
+  /* stylelint-disable-next-line property-no-vendor-prefix */
+-webkit-text-size-adjust: 100%;
+}
+
+/* Equilibra títulos largos en móviles (útil en HERO) */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Evita guiones/particiones raras en títulos */
+.no-hyphens {
+  hyphens: none;
+  -webkit-hyphens: none;
+  -ms-hyphens: none;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+/* Suaviza scroll/filtros/transform en iOS y previene flicker */
+.gpu-smooth {
+  transform: translateZ(0);            /* fuerza capa GPU */
+  will-change: transform, opacity;     /* hint al compositor */
+  backface-visibility: hidden;
+  contain: paint;                      /* aísla repintados */
+}
+
+/* ===== Animaciones ===== */
 
 @keyframes fade-in-up {
   0% {
@@ -30,23 +67,31 @@ html {
   }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 1s ease-out forwards;
-}
-
-.animate-glow {
-  animation: glow 2s infinite alternate;
-}
-
-.animate-slow-zoom {
-  animation: slow-zoom 20s ease-in-out infinite;
-}
-
 @keyframes slow-zoom {
-  0% {
-    transform: scale(1);
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+.animate-fade-in-up { animation: fade-in-up 1s ease-out forwards; }
+.animate-glow      { animation: glow 2s infinite alternate; }
+.animate-slow-zoom { animation: slow-zoom 20s ease-in-out infinite; }
+
+/* Respeto de accesibilidad: reduce motion si el usuario lo pide */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-glow,
+  .animate-slow-zoom {
+    animation: none !important;
   }
-  100% {
-    transform: scale(1.05);
-  }
+}
+/* Evita “gutters” laterales por transforms grandes (iOS/Safari) */
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* En landscape bajo, usa fondo oscuro para que, si aparece un píxel,
+   no se note (mismo tono base del hero) */
+@media (orientation: landscape) and (max-height: 500px) {
+  body { background-color: #0d1b2a; }
 }

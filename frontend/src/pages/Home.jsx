@@ -31,8 +31,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="relative min-h-screen bg-black text-white scroll-smooth overflow-x-clip">
-      {/* Capa base: grid tenue (más al fondo) */}
+<main className="relative min-h-screen bg-[#0b1222] text-white scroll-smooth overflow-x-clip">      {/* Grid tenue */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-40 opacity-[0.08]"
@@ -43,14 +42,14 @@ export default function Home() {
         }}
       />
 
-      {/* Mesh suave (fondo) */}
+      {/* Mesh */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[55rem] h-[55rem] rounded-full blur-3xl opacity-15 bg-[#98f5e1]" />
         <div className="absolute -bottom-48 -right-32 w-[45rem] h-[45rem] rounded-full blur-[80px] opacity-10 bg-white" />
         <div className="absolute -bottom-24 left-1/4 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-10 bg-[#98f5e1]" />
       </div>
 
-      {/* Viñeta (debajo de las partículas) */}
+      {/* Viñeta */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-20"
@@ -60,7 +59,7 @@ export default function Home() {
         }}
       />
 
-      {/* Partículas: por encima de viñeta/mesh/grid, debajo del contenido */}
+      {/* Partículas */}
       <FondoParticulas className="-z-10 opacity-80" />
 
       {showModal && <ModalPublicidad onClose={() => setShowModal(false)} />}
@@ -68,14 +67,11 @@ export default function Home() {
       <Hero />
       <Ramas />
 
-      {/* Bloque de video centrado */}
+      {/* Video */}
       <section className="relative w-full flex justify-center px-4 md:px-6 lg:px-8 mt-8 md:mt-10">
         <div className="w-full max-w-5xl">
           <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm shadow-[0_20px_80px_rgba(0,0,0,0.55)] mx-auto">
-            {/* Glow perimetral */}
             <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/10" />
-
-            {/* Badge “Curso gratuito” */}
             <div className="absolute top-4 left-4 z-20">
               <span className="inline-flex items-center gap-2 rounded-full bg-mint text-black px-4 py-1.5 text-xs md:text-sm font-semibold uppercase tracking-wide shadow-[0_0_24px_rgba(152,245,225,0.45)] animate-pulse">
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" className="opacity-90">
@@ -88,7 +84,6 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Video 16:9 */}
             <div className="relative w-full aspect-video">
               <video
                 ref={videoRef}
@@ -105,9 +100,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA debajo */}
-      <div className="flex justify-center mt-6 mb-24">
-      <motion.div
+      {/* CTA */}
+<div className="flex justify-center mt-6 mb-24">
+  <motion.div
     initial={{ opacity: 0, y: 18 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.9, ease: "easeOut" }}
@@ -119,12 +114,15 @@ export default function Home() {
       Acceder al curso
     </Link>
   </motion.div>
-      </div>
+</div>
 
-      <div id="libro">
-        <LibroVenta />
-      </div>
-
+{/* Libro: wrapper para que NO colapsen márgenes y se funda el fondo */}
+<section
+  id="libro"
+  className="relative overflow-hidden pt-8 pb-0 bg-gradient-to-b from-transparent to-[#0b1222]"
+>
+  <LibroVenta />
+</section>
     </main>
   );
 }

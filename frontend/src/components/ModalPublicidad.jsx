@@ -1,12 +1,5 @@
+// src/components/ModalPublicidad.jsx
 import React, { useEffect, useState } from "react";
-
-/**
- * ModalPublicidad – Página en construcción + CTA + QR
- * - Mismo contrato de props: { onClose, openInitially = true }
- * - Esc/Backdrop para cerrar
- * - Estética glass + acento #98f5e1 (mint)
- * - QR generado en runtime (sin instalar deps). Si falla, oculta el QR.
- */
 
 const STORE_URL =
   "https://linktr.ee/gerpaez?fbclid=PAT01DUAM1Ae9leHRuA2FlbQIxMAABp_cv7EVNHrX6RzRnI--B6fkcTrYPmZZpOawz23MONDUXgQf8OvBGgd6sCEfb_aem_C_uNjZ7PzWLO8-wsQ1na0w";
@@ -27,25 +20,21 @@ export default function ModalPublicidad({ onClose, openInitially = true }) {
     const onKey = (e) => e.key === "Escape" && close();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Generación de QR (carga dinámica sin dependencia local)
+  // Generación de QR (dinámico; si falla, lo oculta)
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        // Si preferís dependencia local: npm i qrcode
-        // y reemplazá la línea de import dinámico por: import QRCode from "qrcode";
         const { default: QRCode } = await import("https://esm.sh/qrcode@1.5.3");
         const url = await QRCode.toDataURL(STORE_URL, {
           margin: 1,
-          width: 480,
-          errorCorrectionLevel: "M", // balancea densidad/legibilidad
+          width: 360, // base más chica (antes 480)
+          errorCorrectionLevel: "M",
         });
         if (mounted) setQrDataUrl(url);
       } catch {
-        // Si falla la carga del módulo (CSP, offline, etc.), no mostramos QR
         if (mounted) setQrDataUrl(null);
       }
     })();
@@ -59,9 +48,7 @@ export default function ModalPublicidad({ onClose, openInitially = true }) {
       await navigator.clipboard.writeText(STORE_URL);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // no-op
-    }
+    } catch {}
   };
 
   if (!open) return null;
@@ -80,21 +67,21 @@ export default function ModalPublicidad({ onClose, openInitially = true }) {
           role="dialog"
           aria-modal="true"
           className="
-            relative w-full max-w-[620px]
+            relative w-full max-w-[440px] sm:max-w-[500px]
             rounded-2xl border border-white/12
             bg-white/10 backdrop-blur-xl
-            shadow-[0_20px_80px_rgba(0,0,0,0.55)]
+            shadow-[0_16px_70px_rgba(0,0,0,0.55)]
             overflow-hidden text-white
           "
         >
-          {/* Glow decorativo */}
-          <div className="pointer-events-none absolute -z-10 -top-16 left-1/2 -translate-x-1/2 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-20 bg-[#98f5e1]" />
+          {/* Glow sutil */}
+          <div className="pointer-events-none absolute -z-10 -top-20 left-1/2 -translate-x-1/2 w-[26rem] h-[26rem] rounded-full blur-3xl opacity-20 bg-[#98f5e1]" />
 
           {/* Cerrar */}
           <button
             onClick={close}
             aria-label="Cerrar"
-            className="absolute top-3.5 right-3.5 h-9 w-9 grid place-items-center rounded-full bg-black/50 text-white/90 hover:bg-black/70 hover:text-white transition"
+            className="absolute top-3 right-3 h-9 w-9 grid place-items-center rounded-full bg-black/45 text-white/90 hover:bg-black/60 hover:text-white transition"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="-translate-y-[1px]">
               <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -102,21 +89,25 @@ export default function ModalPublicidad({ onClose, openInitially = true }) {
           </button>
 
           {/* Contenido */}
-          <div className="px-6 pt-7 pb-6">
+          <div className="px-4 pt-5 pb-4 sm:px-5 sm:pt-6 sm:pb-5">
+            {/* Encabezado */}
             <div className="text-center">
-              <span className="inline-block px-3 py-1 text-xs font-semibold uppercase tracking-wide rounded-full bg-[#98f5e1] text-[#0d1b2a] shadow-[0_0_24px_rgba(152,245,225,0.45)]">
+              <span className="inline-block px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-[#98f5e1] text-[#0d1b2a] shadow-[0_0_16px_rgba(152,245,225,0.4)]">
                 Aviso
               </span>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">Página en construcción</h2>
-              <p className="mt-2 text-white/80">
-                Estamos trabajando para brindarte la mejor experiencia. Mientras tanto,{" "}
-                <span className="text-white">para compras dirigite al siguiente enlace</span>.
+
+              <h2 className="mt-2 text-[1.3rem] md:text-[1.55rem] font-semibold tracking-tight leading-snug">
+                COMPRAS DISPONIBLES EN ESTE ENLACE
+              </h2>
+
+              <p className="mt-1.5 text-[0.95rem] text-white/80 leading-relaxed max-w-[85%] mx-auto">
+                Si querés comprar ahora, usá el link o el QR. El resto del sitio sigue navegable.
               </p>
             </div>
 
             {/* Tarjeta link + copiar */}
-            <div className="mt-5 rounded-xl border border-white/12 bg-white/5 p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="mt-4 rounded-xl border border-white/12 bg-white/5 p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                 <a
                   href={STORE_URL}
                   target="_blank"
@@ -132,7 +123,7 @@ export default function ModalPublicidad({ onClose, openInitially = true }) {
                     href={STORE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-md font-medium bg-[#98f5e1] text-[#0d1b2a] hover:opacity-90 transition shadow-[0_0_20px_rgba(152,245,225,0.25)]"
+                    className="px-3.5 py-2 rounded-md font-medium bg-[#98f5e1] text-[#0d1b2a] hover:opacity-90 transition shadow-[0_0_20px_rgba(152,245,225,0.25)]"
                   >
                     Ir a compras
                   </a>
@@ -146,33 +137,28 @@ export default function ModalPublicidad({ onClose, openInitially = true }) {
               </div>
             </div>
 
-            {/* QR */}
-            <div className="mt-6 grid place-items-center">
-              <div
-                className="
-                  relative rounded-xl p-3 bg-black/40 ring-1 ring-white/10
-                  shadow-[0_10px_40px_rgba(0,0,0,0.45)]
-                "
-              >
+            {/* QR más chico y responsive */}
+            <div className="mt-5 grid place-items-center">
+              <div className="relative rounded-xl p-2.5 bg-black/40 ring-1 ring-white/10 shadow-[0_10px_36px_rgba(0,0,0,0.45)]">
                 {qrDataUrl ? (
                   <img
                     src={qrDataUrl}
-                    alt="QR hacia Linktree de compras"
-                    className="w-[220px] h-[220px] object-contain"
+                    alt="QR hacia Link de compras"
+                    className="w-[140px] h-[140px] sm:w-[170px] sm:h-[170px] object-contain"
                     draggable={false}
                   />
                 ) : (
-                  <div className="w-[220px] h-[220px] grid place-items-center text-white/60 text-sm">
+                  <div className="w-[140px] h-[140px] sm:w-[170px] sm:h-[170px] grid place-items-center text-white/60 text-sm">
                     Generando QR…
                   </div>
                 )}
-                <div className="pointer-events-none absolute -bottom-6 -right-6 size-20 rounded-full bg-[#98f5e1]/20 blur-2xl" />
+                <div className="pointer-events-none absolute -bottom-5 -right-5 size-16 rounded-full bg-[#98f5e1]/20 blur-2xl" />
               </div>
-              <p className="mt-2 text-xs text-white/60">Escaneá para comprar desde tu móvil</p>
+              <p className="mt-1.5 text-[11px] text-white/60">Escaneá para comprar desde tu móvil</p>
             </div>
 
-            {/* Secundario */}
-            <div className="mt-6 flex justify-center">
+            {/* Cerrar / Seguir */}
+            <div className="mt-4 flex justify-center">
               <button
                 onClick={close}
                 className="px-4 py-2 rounded-md border border-white/15 text-white/90 hover:bg-white/10 transition"
