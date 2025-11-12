@@ -1,9 +1,8 @@
 // backend/index.js
-import 'dotenv/config'; // 👈 esto debe ir primero de todo
+import 'dotenv/config'; // 👈 primero
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-
 
 const app = express();
 
@@ -30,10 +29,10 @@ const ALLOWED_ORIGINS = CORS_ORIGINS.length ? CORS_ORIGINS : defaultOrigins;
 
 const corsOptions = {
   origin(origin, callback) {
-    // Permite curl/Postman (sin Origin) y sólo orígenes en whitelist
+    // Permite herramientas sin Origin (curl/Postman)
     if (!origin) return callback(null, true);
     if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    // No dispares error: responde sin CORS (el navegador lo bloqueará)
+    // Responde sin CORS para orígenes no permitidos (el navegador bloqueará)
     return callback(null, false);
   },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -66,7 +65,7 @@ app.get('/health', (_req, res) => {
 });
 
 /* ───────── Rutas ───────── */
-import auth from './routes/auth.js';
+import authRoutes from './routes/authRoutes.js';           // ✅ router de auth
 import bookRoutes from './routes/bookRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import downloadRoutes from './routes/downloadRoutes.js';
@@ -74,10 +73,9 @@ import paypalRoutes from './routes/paypalRoutes.js';
 import purchaseRoutes from './routes/purchaseRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import mercadoPagoRoutes from './routes/mercadoPagoRoutes.js';
-import courseRoutes from "./routes/courseRoutes.js";
+import courseRoutes from './routes/courseRoutes.js';
 
-
-// Montaje seguro: si una ruta explota en require o definición, no cae todo el server
+// Montaje seguro
 function safeUse(prefix, router, label) {
   try {
     app.use(prefix, router);
@@ -87,15 +85,20 @@ function safeUse(prefix, router, label) {
   }
 }
 
-safeUse('/api/auth',     auth,               'authRoutes');
+/**
+ * IMPORTANTE:
+ * - authRoutes se monta en '/api' y dentro define '/users/register', '/users/login', '/users/profile'
+ * - userRoutes NO debe volver a definir register/login/profile (solo endpoints de usuario extra, ej: /users/me/courses)
+ */
+safeUse('/api',          authRoutes,         'authRoutes');      // ✅
 safeUse('/api/book',     bookRoutes,         'bookRoutes');
 safeUse('/api/contact',  contactRoutes,      'contactRoutes');
 safeUse('/api/download', downloadRoutes,     'downloadRoutes');
-safeUse('/api/users',    userRoutes,         'userRoutes');
-safeUse('/api/paypal',   paypalRoutes,       'paypalRoutes');       // comenta si necesitás aislar
+safeUse('/api/users',    userRoutes,         'userRoutes');      // ⚠️ sin register/login/profile aquí
+safeUse('/api/paypal',   paypalRoutes,       'paypalRoutes');
 safeUse('/api/purchase', purchaseRoutes,     'purchaseRoutes');
-safeUse('/api/mp',       mercadoPagoRoutes,  'mercadoPagoRoutes');  // comenta si necesitás aislar
-safeUse("/api/courses", courseRoutes,        'courseRoutes');   
+safeUse('/api/mp',       mercadoPagoRoutes,  'mercadoPagoRoutes');
+safeUse('/api/courses',  courseRoutes,       'courseRoutes');
 
 /* ───────── Debug de rutas ───────── */
 function flattenRoutes(stack, base = '') {
@@ -127,7 +130,7 @@ function flattenRoutes(stack, base = '') {
     }
   }
   return out;
- }
+}
 
 app.get('/__routes', (_req, res) => {
   try {

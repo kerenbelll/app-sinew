@@ -1,4 +1,3 @@
-// src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import AOS from "aos";
@@ -26,10 +25,14 @@ import Checkout from "./pages/Checkout";
 import Gracias from "./pages/Gracias";
 import Download from "./pages/Download";
 import ResetPassword from "./pages/ResetPassword";
+import Perfil from "./pages/Perfil";
+import Ajustes from "./pages/Ajustes";
+
+
 
 import { UserProvider, useUser } from "./context/UserContext";
 
-// ===== Loader full-screen mientras se resuelve `user` =====
+/* ===== Loader full-screen mientras se resuelve `user` ===== */
 function FullScreenLoader() {
   return (
     <div className="min-h-screen grid place-items-center bg-white text-black">
@@ -41,28 +44,25 @@ function FullScreenLoader() {
   );
 }
 
-// ===== Rutas que requieren login =====
+/* ===== Rutas que requieren login ===== */
 function ProtectedRoute({ children }) {
   const { user, loading } = useUser();
   const location = useLocation();
 
   if (loading) return <FullScreenLoader />;
-
-  if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return children;
 }
 
-// ===== Rutas públicas exclusivas (login/register) =====
-function PublicOnlyRoute({ children, to = "/checkout" }) {
+/* ===== Rutas públicas exclusivas (login/register) ===== */
+function PublicOnlyRoute({ children, to = "/perfil" }) {
   const { user, loading } = useUser();
   if (loading) return <FullScreenLoader />;
   if (user) return <Navigate to={to} replace />;
   return children;
 }
 
-// ===== App =====
+/* ===== App ===== */
 export default function App() {
   useEffect(() => {
     AOS.init({
@@ -78,7 +78,6 @@ export default function App() {
       <UserProvider>
         <Router>
           <Navbar />
-          {/* Forzar scroll arriba en cada navegación */}
           <ScrollToTop behavior="instant" />
 
           <Routes>
@@ -98,11 +97,11 @@ export default function App() {
             <Route path="/xtalent" element={<XTalentPage />} />
             <Route path="/corp" element={<CorpPage />} />
 
-            {/* Auth: si ya está logueado, no mostrar estas páginas */}
+            {/* Auth: si ya está logueado, NO mostrar estas páginas */}
             <Route
               path="/login"
               element={
-                <PublicOnlyRoute to="/checkout">
+                <PublicOnlyRoute to="/perfil">
                   <Login />
                 </PublicOnlyRoute>
               }
@@ -110,11 +109,12 @@ export default function App() {
             <Route
               path="/register"
               element={
-                <PublicOnlyRoute to="/checkout">
+                <PublicOnlyRoute to="/perfil">
                   <Register />
                 </PublicOnlyRoute>
               }
             />
+              <Route path="/ajustes" element={<Ajustes />} />
 
             {/* Protegidas */}
             <Route
@@ -126,13 +126,18 @@ export default function App() {
               }
             />
             <Route
-              path="/gracias"
+              path="/perfil"
               element={
-                  <Gracias />             
+                <ProtectedRoute>
+                  <Perfil />
+                </ProtectedRoute>
               }
             />
+            {/* Alias opcional */}
+            <Route path="/mis-cursos" element={<Navigate to="/perfil" replace />} />
 
             {/* Páginas con token en URL (no requieren login) */}
+            <Route path="/gracias" element={<Gracias />} />
             <Route path="/download/:token" element={<Download />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
 

@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import axios from "axios";
-import { createPreference } from "../services/mercadopago"; // 👈 helper unificado MP
+import { createPreference } from "../services/mercadopago"; // helper unificado MP
 
 const COURSES = [
   { slug: "pro-avanzado", title: "Comunicación, tecnología y el plan de Dios", priceUSD: "35.00", priceARS: 34900 },
@@ -41,8 +41,15 @@ export default function Checkout() {
   const handleChange = (e) => { setErrorMsg(""); setFormData({ ...formData, [e.target.name]: e.target.value }); };
 
   const requireLoginAndForm = () => {
-    if (!isLoggedIn) { setErrorMsg("Debes iniciar sesión para comprar."); navigate("/login", { state: { from: "/checkout" } }); return false; }
-    if (!isFormValid) { setErrorMsg("Completá nombre y un email válido."); return false; }
+    if (!isLoggedIn) {
+      setErrorMsg("Debes iniciar sesión para comprar.");
+      navigate("/login", { state: { from: "/checkout" } });
+      return false;
+    }
+    if (!isFormValid) {
+      setErrorMsg("Completá nombre y un email válido.");
+      return false;
+    }
     return true;
   };
 
@@ -81,10 +88,18 @@ export default function Checkout() {
         metadata,
       });
 
-      // redirige al checkout de MP
-      window.location.href = pref.init_point;
+      if (!pref) throw new Error("Respuesta vacía de la API de preferencias.");
+      const url = pref.sandbox_init_point || pref.init_point;
+
+      if (!url) {
+        throw new Error(
+          "La preferencia no devolvió URL de checkout. Verificá que el backend envíe `sandbox_init_point` e `init_point`, y que estés usando credenciales APP_USR de una cuenta de prueba (seller)."
+        );
+      }
+
+      window.location.href = url; // prioriza sandbox
     } catch (err) {
-      const msg = err?.message || "No se pudo iniciar Mercado Pago.";
+      const msg = err?.response?.data?.error || err?.message || "No se pudo iniciar Mercado Pago.";
       setErrorMsg(`Error iniciando Mercado Pago.\nDetalle: ${msg}`);
     } finally {
       setMpLoading(false);

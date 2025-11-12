@@ -1,9 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class', // opcional: útil si más adelante querés toggle de tema
   content: [
     "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
-     "./pages/**/*.{js,jsx,ts,tsx}",
+    "./pages/**/*.{js,jsx,ts,tsx}",
     "./components/**/*.{js,jsx,ts,tsx}",
   ],
   theme: {
@@ -18,11 +19,6 @@ export default {
         grotesk: ['Space Grotesk', 'sans-serif'],
         playfair: ['Playfair Display', 'serif'],
       },
-      animation: {
-        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
-        'glow': 'glow 2.5s ease-in-out infinite',
-        'slow-zoom': 'slowZoom 20s ease-in-out infinite alternate',
-      },
       keyframes: {
         slowZoom: {
           '0%': { transform: 'scale(1)' },
@@ -36,6 +32,11 @@ export default {
           '0%, 100%': { filter: 'drop-shadow(0 0 10px #98f5e1)' },
           '50%': { filter: 'drop-shadow(0 0 25px #98f5e1)' },
         },
+      },
+      animation: {
+        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+        'glow': 'glow 2.5s ease-in-out infinite',
+        'slow-zoom': 'slowZoom 20s ease-in-out infinite alternate',
       },
     },
   },

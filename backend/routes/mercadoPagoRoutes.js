@@ -96,6 +96,26 @@ router.get("/ping", (_req, res) => {
   res.json({ ok: true, mp: !!mpClient, FRONTEND_URL, BACKEND_URL });
 });
 
+// Diagnóstico: ¿qué cuenta soy con el token actual?
+router.get("/whoami", async (_req, res) => {
+  try {
+    const r = await fetch("https://api.mercadopago.com/users/me", {
+      headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+    });
+    const j = await r.json();
+    res.json({
+      ok: true,
+      seller_id: j?.id,
+      nickname: j?.nickname,
+      email: j?.email,
+      test_user: j?.test_data?.test_user === true,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e?.message || String(e) });
+  }
+});
+
+
 /* ───────── Crear preferencia ───────── */
 router.post("/create-preference", async (req, res) => {
   try {
@@ -134,10 +154,12 @@ router.post("/create-preference", async (req, res) => {
         unit_price: unitPrice,
         description: title
       }],
-      payer: { name: buyerName, email: buyerEmail },
+      payer: { name: buyerName, email: buyerEmail || `test_${Date.now()}@testuser.com` },
       back_urls,
       external_reference,
       metadata: { ...metadata, courseSlug, itemId, title },
+      // Importante: si querés, podés forzar binario en pruebas
+      // binary_mode: true,
       ...(backendIsPublic ? {
         notification_url: `${BACKEND_URL}/api/mp/webhook`,
         auto_return: "approved",
@@ -145,9 +167,13 @@ router.post("/create-preference", async (req, res) => {
     };
 
     const result = await preference.create({ body });
+
+    // ✅ SIEMPRE devolver lo que viene en `result.body`
+    const b = result?.body || result;
     return res.status(201).json({
-      id:         result?.id         || result?.body?.id,
-      init_point: result?.init_point || result?.body?.init_point,
+      id: b.id,
+      init_point: b.init_point,
+      sandbox_init_point: b.sandbox_init_point,
     });
   } catch (err) {
     console.error("[MP] create-preference error:", err?.message || err);

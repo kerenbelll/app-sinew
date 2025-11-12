@@ -34,37 +34,78 @@ export default function CursoDetalle() {
   const [search] = useSearchParams();
   const API = (import.meta.env.VITE_API_BASE || "http://localhost:5001").replace(/\/$/, "");
 
-  const { token } = useUser();
+  // token SOLAMENTE desde el contexto, SIN fallback a localStorage
+  const { token: ctxToken } = useUser();
+  const token = ctxToken || "";
+
   const [course, setCourse] = useState(null);
   const [lessons, setLessons] = useState(null);
   const [paywall, setPaywall] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hintNeedsLogin, setHintNeedsLogin] = useState(false);
 
-  const headers = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {}), [token]);
+  // headers sólo si hay token válido del contexto
+  const headers = useMemo(() => {
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, [token]);
 
-  // Limpia ?buy=1 del URL para que no quede pegado post-login
-  useEffect(() => {
-    if (search.get("buy") === "1") {
+  /** Borra un query param del URL actual sin recargar */
+  const removeQueryParam = (key) => {
+    try {
       const u = new URL(window.location.href);
-      u.searchParams.delete("buy");
-      window.history.replaceState({}, "", u.pathname + u.search);
+      u.searchParams.delete(key);
+      const qs = u.searchParams.toString();
+      window.history.replaceState({}, "", u.pathname + (qs ? `?${qs}` : ""));
+    } catch {
+      /* no-op */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  };
 
-  const fetchLessons = async () => {
+  // Limpia ?buy=1 y muestra hint si hay ?paid=1 pero no hay sesión
+  useEffect(() => {
+    if (search.get("buy") === "1") removeQueryParam("buy");
+    if (search.get("paid") === "1" && !token) setHintNeedsLogin(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, token]);
+
+  const fetchLessonsOnce = async () => {
     const opts = token ? { headers } : {};
     const res = await fetch(`${API}/api/courses/${slug}/lessons`, opts).catch(() => null);
-    if (!res) return setLessons(null);
+    if (!res) {
+      setLessons(null);
+      return false;
+    }
     if (res.status === 200) {
       setLessons(await res.json());
       setPaywall(false);
-    } else if (res.status === 402 || res.status === 401) {
+      return true;
+    }
+    if (res.status === 402 || res.status === 401) {
       setLessons(null);
       setPaywall(true);
-    } else {
-      setLessons(null);
+      return false;
     }
+    setLessons(null);
+    return false;
+  };
+
+  // Poll corto si viene ?paid=1 (ej. tras capture PayPal) para esperar el CourseAccess
+  const pollLessonsIfPaid = async () => {
+    const isPaidFlag = search.get("paid") === "1";
+    if (!isPaidFlag) return;
+
+    // si no hay sesión, no tiene sentido poll
+    if (!token) return;
+
+    // intentos con backoff (5 intentos: 300ms, 600ms, 900ms, 1200ms, 1500ms)
+    for (let i = 1; i <= 5; i++) {
+      const ok = await fetchLessonsOnce();
+      if (ok) break;
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, i * 300));
+    }
+
+    removeQueryParam("paid");
   };
 
   useEffect(() => {
@@ -80,21 +121,34 @@ export default function CursoDetalle() {
         }
         setCourse(c);
 
-        await fetchLessons();
+        // primer intento
+        await fetchLessonsOnce();
 
-        // Si vino con ?paid=1 (post-pago o retorno) reintenta traer lessons
-        if (search.get("paid") === "1") {
-          setTimeout(fetchLessons, 600);
-        }
+        // si vino con ?paid=1, hacer poll corto
+        await pollLessonsIfPaid();
       } catch {
         // noop
       } finally {
         if (mounted) setLoading(false);
       }
     })();
-    return () => (mounted = false);
+    return () => {
+      mounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API, slug, token]);
+
+  // Si el token aparece “tarde” (hidrata el contexto), reintenta una vez
+  useEffect(() => {
+    if (token) {
+      const id = setTimeout(() => {
+        fetchLessonsOnce();
+      }, 300);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const showPaywall =
     paywall || (course?.level === "pro" && (!Array.isArray(lessons) || lessons.length === 0));
@@ -116,7 +170,8 @@ export default function CursoDetalle() {
   }
 
   const mpPriceARS = MP_PRICE_ARS_BY_SLUG[slug] ?? 0;
-  const ppPriceUSD = course.currency?.toUpperCase() === "USD" ? course.price ?? 0 : 0;
+  const ppPriceUSD =
+    (course.currency?.toUpperCase?.() === "USD" ? course.price : 0) ?? 0;
 
   return (
     <section className="relative min-h-screen bg-black text-white overflow-hidden">
@@ -148,9 +203,7 @@ export default function CursoDetalle() {
           {course?.level === "pro" ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs">
               Pro
-              {ppPriceUSD > 0 && (
-                <span className="text-white/70">· USD {ppPriceUSD}</span>
-              )}
+              {ppPriceUSD > 0 && <span className="text-white/70">· USD {ppPriceUSD}</span>}
             </span>
           ) : (
             <span className="inline-flex items-center gap-2 rounded-full bg-mint text-black px-3 py-1 text-xs font-semibold">
@@ -158,6 +211,14 @@ export default function CursoDetalle() {
             </span>
           )}
         </div>
+
+        {/* Hint: vino con paid=1 pero sin sesión */}
+        {hintNeedsLogin && (
+          <div className="mt-4 rounded-lg border border-white/10 bg-white/5 p-3 text-sm text-white/80">
+            Pagaste correctamente. Para ver el contenido, <strong>iniciá sesión</strong> con el
+            mismo email que usaste en PayPal y volvemos a intentar automáticamente.
+          </div>
+        )}
 
         {/* Título + subtítulo */}
         <header className="mt-6 mb-8">

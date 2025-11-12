@@ -1,3 +1,4 @@
+// src/pages/Home.jsx
 import { Link } from "react-router-dom";
 import React, { useState, useRef, useEffect } from "react";
 import Hero from "../components/Hero";
@@ -31,7 +32,8 @@ export default function Home() {
   }, []);
 
   return (
-<main className="relative min-h-screen bg-[#0b1222] text-white scroll-smooth overflow-x-clip">      {/* Grid tenue */}
+    <main className="relative min-h-screen bg-[#0b1222] text-white scroll-smooth overflow-x-clip">
+      {/* Grid tenue */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-40 opacity-[0.08]"
@@ -42,14 +44,14 @@ export default function Home() {
         }}
       />
 
-      {/* Mesh */}
+      {/* Mesh (glows) */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[55rem] h-[55rem] rounded-full blur-3xl opacity-15 bg-[#98f5e1]" />
         <div className="absolute -bottom-48 -right-32 w-[45rem] h-[45rem] rounded-full blur-[80px] opacity-10 bg-white" />
         <div className="absolute -bottom-24 left-1/4 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-10 bg-[#98f5e1]" />
       </div>
 
-      {/* Viñeta */}
+      {/* Viñeta general */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-20"
@@ -59,21 +61,23 @@ export default function Home() {
         }}
       />
 
-      {/* Partículas */}
-      <FondoParticulas className="-z-10 opacity-80" />
+      {/* Partículas SIEMPRE por detrás del contenido (z-index negativo) */}
+      <FondoParticulas className="pointer-events-none fixed inset-0 -z-10 opacity-70" />
 
       {showModal && <ModalPublicidad onClose={() => setShowModal(false)} />}
 
       <Hero />
       <Ramas />
 
-      {/* Video */}
-      <section className="relative w-full flex justify-center px-4 md:px-6 lg:px-8 mt-8 md:mt-10">
+      {/* Video (z-index alto para quedar por encima de cualquier overlay/partículas) */}
+      <section className="relative z-30 w-full flex justify-center px-4 md:px-6 lg:px-8 mt-8 md:mt-10">
         <div className="w-full max-w-5xl">
           <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm shadow-[0_20px_80px_rgba(0,0,0,0.55)] mx-auto">
             <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/10" />
+
+            {/* Badge */}
             <div className="absolute top-4 left-4 z-20">
-              <span className="inline-flex items-center gap-2 rounded-full bg-mint text-black px-4 py-1.5 text-xs md:text-sm font-semibold uppercase tracking-wide shadow-[0_0_24px_rgba(152,245,225,0.45)] animate-pulse">
+              <span className="inline-flex items-center gap-2 rounded-full bg-mint text-black px-4 py-1.5 text-xs md:text-sm font-semibold uppercase tracking-wide shadow-[0_0_14px_rgba(152,245,225,0.35)]">
                 <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" className="opacity-90">
                   <path
                     fill="currentColor"
@@ -84,7 +88,11 @@ export default function Home() {
               </span>
             </div>
 
-            <div className="relative w-full aspect-video">
+            {/* Contenedor de video con mejora visual */}
+            <div className="relative w-full aspect-video z-30">
+              {/* Capa de realce (nitidez/contraste sutil) */}
+              <div className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-[0.08] bg-white z-10" />
+              {/* Video arriba de partículas */}
               <video
                 ref={videoRef}
                 className="absolute inset-0 w-full h-full object-cover"
@@ -93,36 +101,39 @@ export default function Home() {
                 playsInline
                 muted
                 loop
+                preload="metadata"
+                // Mejora de nitidez (CSS filters, no “sharpen” puro pero ayuda)
+                style={{
+                  filter: "contrast(1.08) saturate(1.06) brightness(1.03)",
+                  willChange: "transform",
+                }}
               />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA */}
-<div className="flex justify-center mt-6 mb-24">
-  <motion.div
-    initial={{ opacity: 0, y: 18 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.9, ease: "easeOut" }}
-  >
-    <Link
-      to="/cursos"
-      className="inline-block px-8 py-3 text-white border border-white/15 rounded-full bg-white/5 hover:bg-mint hover:text-black transition-all duration-300 ease-in-out shadow-[0_0_25px_rgba(152,245,225,0.25)] backdrop-blur-sm"
-    >
-      Acceder al curso
-    </Link>
-  </motion.div>
-</div>
+      <div className="relative z-30 flex justify-center mt-6 mb-24">
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+        >
+          <Link
+            to="/cursos"
+            className="inline-block px-8 py-3 text-white border border-white/15 rounded-full bg-white/5 hover:bg-mint hover:text-black transition-all duration-300 ease-in-out shadow-[0_0_20px_rgba(152,245,225,0.25)] backdrop-blur-sm"
+          >
+            Acceder al curso
+          </Link>
+        </motion.div>
+      </div>
 
-{/* Libro: wrapper para que NO colapsen márgenes y se funda el fondo */}
-<section
-  id="libro"
-  className="relative overflow-hidden pt-8 pb-0 bg-gradient-to-b from-transparent to-[#0b1222]"
->
-  <LibroVenta />
-</section>
+      {/* Libro */}
+      <section id="libro" className="relative z-10 overflow-hidden pt-8 pb-0 bg-gradient-to-b from-transparent to-[#0b1222]">
+        <LibroVenta />
+      </section>
     </main>
   );
 }

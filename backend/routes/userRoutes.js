@@ -7,6 +7,8 @@ import crypto from 'crypto';
 import User from '../models/User.js';
 import PasswordReset from '../models/PasswordReset.js';
 import { sendResetEmail } from '../utils/mailer.js';
+import CourseAccess from '../models/CourseAccess.js';
+import Course from '../models/Course.js';
 
 const router = express.Router();
 
@@ -150,6 +152,113 @@ router.get('/profile', authRequired, async (req, res) => {
 });
 
 /* =========================
+   PATCH /api/users/profile  (protegido) — actualizar nombre/email
+   ========================= */
+router.patch('/profile', authRequired, async (req, res) => {
+  try {
+    let { name, email } = req.body || {};
+    const updates = {};
+
+    if (typeof name === 'string') {
+      updates.name = String(name).trim();
+    }
+
+    if (typeof email === 'string') {
+      const newEmail = String(email).trim().toLowerCase();
+      if (!/\S+@\S+\.\S+/.test(newEmail)) {
+        return res.status(400).json({ message: 'Email inválido' });
+      }
+      // evitar duplicados (otro usuario con el mismo email)
+      const clash = await User.findOne({ email: newEmail, _id: { $ne: req.user.id } }).lean();
+      if (clash) {
+        return res.status(409).json({ message: 'Ese email ya está en uso' });
+      }
+      updates.email = newEmail;
+    }
+
+    if (!Object.keys(updates).length) {
+      return res.status(400).json({ message: 'No hay cambios para actualizar' });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, updates, {
+      new: true,
+      runValidators: true,
+      select: '_id name email',
+    });
+
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    // re-emitimos token por si cambió el email
+    const token = issueToken(user);
+    return res.json({
+      message: 'Perfil actualizado',
+      token,
+      user: { id: user._id, name: user.name || '', email: user.email },
+    });
+  } catch (err) {
+    console.error('[users/profile PATCH] error:', err);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+/* =========================
+   PATCH /api/users/password  (protegido) — cambiar contraseña
+   ========================= */
+router.patch('/password', authRequired, async (req, res) => {
+  try {
+    const { currentPassword = '', newPassword = '' } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Faltan campos' });
+    }
+
+    const weak = newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword);
+    if (weak) {
+      return res.status(422).json({
+        message: 'La nueva contraseña debe tener al menos 8 caracteres e incluir letras y números.',
+      });
+    }
+
+    const user = await User.findById(req.user.id).select('+passwordHash');
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash || '');
+    if (!ok) return res.status(401).json({ message: 'La contraseña actual no es correcta' });
+
+    const salt = await bcrypt.genSalt(12);
+    user.passwordHash = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    return res.json({ ok: true, message: 'Contraseña actualizada' });
+  } catch (err) {
+    console.error('[users/password PATCH] error:', err);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+/* =========================
+   GET /api/users/me/courses  (protegido) — (ÚNICA definición)
+   ========================= */
+router.get('/me/courses', authRequired, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const accesses = await CourseAccess.find({ userId }).lean();
+    const slugs = accesses.map(a => a.courseSlug).filter(Boolean);
+
+    if (!slugs.length) return res.json({ courses: [] });
+
+    const courses = await Course.find({ slug: { $in: slugs } })
+      .select('slug title thumbnail level price currency')
+      .lean();
+
+    return res.json({ courses });
+  } catch (err) {
+    console.error('[users/me/courses] error:', err);
+    return res.status(500).json({ message: 'Error del servidor' });
+  }
+});
+
+/* =========================
    POST /api/users/forgot-password
    ========================= */
 router.post('/forgot-password', async (req, res) => {
@@ -160,15 +269,14 @@ router.post('/forgot-password', async (req, res) => {
     const normalizedEmail = String(email).trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
 
-    // Respuesta indistinta (no revelamos existencia)
+    // Respuesta indistinta
     if (!user) {
       return res.json({ message: 'Si el email está registrado, te enviamos instrucciones.' });
     }
 
-    // Generar token (hash guardado, raw enviado por email)
     const rawToken  = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1h
 
     await PasswordReset.create({ userId: user._id, tokenHash, expiresAt, used: false });
 
@@ -220,20 +328,20 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Token inválido o expirado.' });
     }
 
-    const user = await User.findById(resetDoc.userId).select('+passwordHash');
+    const user = await (await import('../models/User.js')).default
+      .findById(resetDoc.userId).select('+passwordHash');
     if (!user) {
       return res.status(400).json({ error: 'Usuario no encontrado.' });
     }
 
-    const salt = await bcrypt.genSalt(12);
-    user.passwordHash = await bcrypt.hash(password, salt);
+    const salt = await (await import('bcryptjs')).genSalt(12);
+    user.passwordHash = await (await import('bcryptjs')).hash(password, salt);
     await user.save();
 
     resetDoc.used = true;
     await resetDoc.save();
 
-    // Invalidar otros tokens vigentes
-    await PasswordReset.updateMany(
+    await (await import('../models/PasswordReset.js')).default.updateMany(
       { userId: user._id, used: false, expiresAt: { $gt: new Date() } },
       { $set: { used: true } }
     );
@@ -244,10 +352,6 @@ router.post('/reset-password', async (req, res) => {
     return res.status(500).json({ error: 'No se pudo restablecer la contraseña' });
   }
 });
-
-/* Debug simple */
-router.get('/test', (_req, res) => res.json({ ok: true, from: 'userRoutes' }));
-
 
 /* =========================
    GET /api/users/reset-password/validate/:token
@@ -264,5 +368,8 @@ router.get("/reset-password/validate/:token", async (req, res) => {
     return res.json({ ok: false });
   }
 });
+
+/* Debug simple */
+router.get('/test', (_req, res) => res.json({ ok: true, from: 'userRoutes' }));
 
 export default router;

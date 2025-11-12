@@ -2,96 +2,80 @@
 @tailwind components;
 @tailwind utilities;
 
-/* === Fuente alternativa para subtítulos o piezas hero === */
+/* Fuente alt */
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
 
 .font-alt {
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
-/* === Reseteo base y comportamiento global === */
+/* ===== Base & dark defaults ===== */
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  background-color: #0b1222;   /* refuerzo para iOS */
+  color-scheme: dark;          /* UI del navegador en modo oscuro */
 }
 
 body {
-  @apply m-0 min-h-screen font-sans bg-white text-black;
-  /* stylelint-disable-next-line property-no-vendor-prefix */
--webkit-text-size-adjust: 100%;
+  @apply m-0 min-h-screen font-sans text-white;
+  background-color: #0b1222;   /* ya no blanco */
+  -webkit-text-size-adjust: 100%;
 }
 
-/* Equilibra títulos largos en móviles (útil en HERO) */
-.text-balance {
-  text-wrap: balance;
-}
+/* Evitar saltos/flicker y desplazamiento lateral */
+html, body { overflow-x: hidden; width: 100%; }
 
-/* Evita guiones/particiones raras en títulos */
+/* ===== Utilidades de tipografía ===== */
+.text-balance { text-wrap: balance; }
 .no-hyphens {
-  hyphens: none;
-  -webkit-hyphens: none;
-  -ms-hyphens: none;
-  word-break: normal;
-  overflow-wrap: normal;
+  hyphens: none; -webkit-hyphens: none; -ms-hyphens: none;
+  word-break: normal; overflow-wrap: normal;
 }
-
-/* Suaviza scroll/filtros/transform en iOS y previene flicker */
 .gpu-smooth {
-  transform: translateZ(0);            /* fuerza capa GPU */
-  will-change: transform, opacity;     /* hint al compositor */
+  transform: translateZ(0);
+  will-change: transform, opacity;
   backface-visibility: hidden;
-  contain: paint;                      /* aísla repintados */
+  contain: paint;
 }
 
 /* ===== Animaciones ===== */
-
-@keyframes fade-in-up {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes glow {
-  0%, 100% {
-    filter: drop-shadow(0 0 4px #a7ffeb);
-  }
-  50% {
-    filter: drop-shadow(0 0 10px #a7ffeb);
-  }
-}
-
-@keyframes slow-zoom {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.05); }
-}
+@keyframes fade-in-up { 0%{opacity:0;transform:translateY(20px)} 100%{opacity:1;transform:translateY(0)} }
+@keyframes glow { 0%,100%{filter:drop-shadow(0 0 4px #a7ffeb)} 50%{filter:drop-shadow(0 0 10px #a7ffeb)} }
+@keyframes slow-zoom { 0%{transform:scale(1)} 100%{transform:scale(1.05)} }
 
 .animate-fade-in-up { animation: fade-in-up 1s ease-out forwards; }
 .animate-glow      { animation: glow 2s infinite alternate; }
 .animate-slow-zoom { animation: slow-zoom 20s ease-in-out infinite; }
 
-/* Respeto de accesibilidad: reduce motion si el usuario lo pide */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up,
-  .animate-glow,
-  .animate-slow-zoom {
-    animation: none !important;
-  }
-}
-/* Evita “gutters” laterales por transforms grandes (iOS/Safari) */
-html, body {
-  overflow-x: hidden;
-  width: 100%;
+  .animate-fade-in-up, .animate-glow, .animate-slow-zoom { animation: none !important; }
 }
 
-/* En landscape bajo, usa fondo oscuro para que, si aparece un píxel,
-   no se note (mismo tono base del hero) */
-@media (orientation: landscape) and (max-height: 500px) {
+/* ===== iOS/landscape low-height tweak ===== */
+@media (orientation: landscape) && (max-height: 500px) {
   body { background-color: #0d1b2a; }
 }
+
+/* ===== UX polish: selection, placeholders, autofill, scrollbars ===== */
+::selection { background: rgba(152,245,225,0.35); color: #fff; }
+
+input::placeholder,
+textarea::placeholder { color: rgba(255,255,255,0.45); }
+
+/* Evitar amarillo de autofill en dark */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.10) inset !important;
+  -webkit-text-fill-color: #fff !important;
+  caret-color: #fff;
+}
+
+/* Scrollbar discreta (Chromium/Edge) */
+*::-webkit-scrollbar        { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.12); border-radius: 8px; }
+*::-webkit-scrollbar-track  { background: rgba(255,255,255,0.06); }

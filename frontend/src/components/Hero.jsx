@@ -1,14 +1,14 @@
+// src/components/Hero.jsx
 import React, { useMemo } from "react";
 import heroImage from "../assets/img/sinew6.jpg";
-import sinewLogo from "../assets/img/B1.png";
 import useScrollReveal from "../hooks/useScrollReveal";
 import TituloAnimadoHero from "./TituloAnimadoHero";
+import Logo from "../assets/img/A1.png";
 
 const Hero = () => {
   useScrollReveal();
 
   const isSmall = useMemo(() => {
-    // heurística: tratar como “compacto” teléfonos en vertical u horizontal bajo
     const h = typeof window !== "undefined" ? window.innerHeight : 800;
     const w = typeof window !== "undefined" ? window.innerWidth : 800;
     return w < 640 || h <= 500;
@@ -44,18 +44,17 @@ const Hero = () => {
       </div>
 
       {/* Contenido */}
-      <div className="relative z-30 text-center px-4 sm:px-6 max-w-3xl flex flex-col items-center">
-        <img
-          src={sinewLogo}
-          alt="SINEW"
-          className="h-16 sm:h-20 md:h-24 mb-4 sm:mb-6 drop-shadow-[0_0_18px_rgba(152,245,225,0.35)]"
-          loading="lazy"
-          decoding="async"
-        />
+      <div className="relative z-30 text-center px-4 sm:px-6 max-w-4xl mx-auto flex flex-col items-center">
+  <img
+    src={Logo}
+    alt="SINEW"
+    className="w-[clamp(200px,42vw,560px)] h-auto mb-6 drop-shadow-[0_0_18px_rgba(152,245,225,0.35)] select-none"
+    loading="eager"
+    decoding="async"
+    sizes="(min-width:1280px) 560px, (min-width:768px) 42vw, 80vw"
+  />
 
-        {/* Título */}
         <div className="w-full">
-          {/* En vistas compactas: subtítulo en una sola línea, sin animación por letra */}
           {isSmall ? (
             <div className="text-center uppercase leading-tight">
               <h1 className="text-[clamp(22px,7vw,34px)] font-extralight tracking-[0.35em] text-white drop-shadow-md mb-1">

@@ -4,15 +4,17 @@ set -euo pipefail
 USER="root"
 HOST="167.71.84.222"
 REMOTE_DIR="/var/www/sineworg/backend"
+HEALTH_LOCAL="http://127.0.0.1:5001/health"
+HEALTH_EXT="https://api.sineworg.com/api/paypal/ping"
 
-# --- 0) Comprobaciones rápidas locales ---
+# 0) Comprobaciones locales
 [ -d "backend" ] || { echo "❌ Ejecutá este script desde la raíz del repo (debe existir ./backend)"; exit 1; }
 command -v rsync >/dev/null || { echo "❌ Falta rsync en tu Mac: brew install rsync"; exit 1; }
 
-# --- 1) Backup remoto ---
+# 1) Backup remoto
 ssh "$USER@$HOST" "mkdir -p $REMOTE_DIR && cd $REMOTE_DIR && tar -czf /root/backend-backup-\$(date +%F-%H%M%S).tgz . || true"
 
-# --- 2) Sincronizar backend completo (EXCLUYENDO cosas sensibles o pesadas) ---
+# 2) Sincronizar backend (sin .env, sin node_modules)
 rsync -avz --delete \
   --exclude ".env" \
   --exclude "node_modules/" \
@@ -21,18 +23,13 @@ rsync -avz --delete \
   --exclude "protected-pdfs/" \
   backend/ "$USER@$HOST:$REMOTE_DIR/"
 
-# --- 3) Instalar deps y reiniciar PM2 ---
+# 3) Instalar deps y reiniciar PM2
 ssh "$USER@$HOST" bash -lc "
   set -euo pipefail
   cd $REMOTE_DIR
-  # instala exacto según lockfile (si no hay cambios, es rápido)
-  npm ci
+  [ -f package-lock.json ] && npm ci || npm install
 
-  # matar alias viejos si existían
-  pm2 stop sinew-backend >/dev/null 2>&1 || true
-  pm2 delete sinew-backend >/dev/null 2>&1 || true
-
-  # levantar/reiniciar 'backend'
+  # arrancar / reiniciar
   if pm2 list | grep -q ' backend '; then
     pm2 restart backend --update-env
   else
@@ -41,13 +38,13 @@ ssh "$USER@$HOST" bash -lc "
   pm2 save
 "
 
-# --- 4) Healthchecks (ajustá endpoints si hiciera falta) ---
-ssh "$USER@$HOST" bash -lc '
+# 4) Healthchecks rápidos
+ssh "$USER@$HOST" bash -lc "
   set -e
-  echo -n "Ping puerto 5001: "
-  (curl -sSf http://127.0.0.1:5001/health || curl -sSf http://127.0.0.1:5001/__routes) >/dev/null && echo "OK" || echo "FAIL"
-  echo -n "PayPal ping: " && (curl -sS http://127.0.0.1:5001/api/paypal/ping || true); echo
-  echo -n "MP ping: " && (curl -sS http://127.0.0.1:5001/api/mp/ping || true); echo
-'
-
+  echo -n 'Ping puerto 5001 (local): '
+  (curl -sSf $HEALTH_LOCAL >/dev/null || curl -sSf http://127.0.0.1:5001/__routes >/dev/null) && echo OK || echo FAIL
+"
+echo -n "Ping público (PayPal ping): "
+curl -s "$HEALTH_EXT" || true
+echo
 echo "✅ Backend actualizado."

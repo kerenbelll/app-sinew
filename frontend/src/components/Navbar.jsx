@@ -1,13 +1,15 @@
+// src/components/Navbar.jsx
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
-import logo from "../assets/img/A1.png";
+import sinewLogo from "../assets/img/B1.png";
 
-// Icons
 import {
   ArrowRightOnRectangleIcon,
   ArrowLeftStartOnRectangleIcon,
   UserPlusIcon,
+  UserCircleIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 
 const sections = ["home", "cursos", "comunidad", "contacto"];
@@ -18,31 +20,39 @@ const Navbar = () => {
   const [activeSection, setActiveSection] = useState("home");
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isLandscapePhone, setIsLandscapePhone] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Altura real + detección de HERO detrás
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [hasHeroBehind, setHasHeroBehind] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
   const drawerRef = useRef(null);
+  const headerRef = useRef(null);
   const { user, logout } = useUser();
 
-  // Detectar móvil en landscape para ajustar alturas/tamaños
+  /* ---------- Media queries (móvil / landscape bajo) ---------- */
   useEffect(() => {
-    const mql = window.matchMedia("(orientation: landscape)");
-    const handler = () => {
-      const w = window.innerWidth;
+    const mqlLandscape = window.matchMedia("(orientation: landscape)");
+    const mqlMobile = window.matchMedia("(max-width: 1023px)");
+    const handleMQ = () => {
       const h = window.innerHeight;
-      // Heurística: teléfonos en landscape suelen tener bajo alto (<= 500)
-      setIsLandscapePhone(mql.matches && h <= 500);
+      setIsLandscapePhone(mqlLandscape.matches && h <= 500);
+      setIsMobile(mqlMobile.matches);
     };
-    handler();
-    window.addEventListener("resize", handler);
-    mql.addEventListener?.("change", handler);
+    handleMQ();
+    window.addEventListener("resize", handleMQ);
+    mqlLandscape.addEventListener?.("change", handleMQ);
+    mqlMobile.addEventListener?.("change", handleMQ);
     return () => {
-      window.removeEventListener("resize", handler);
-      mql.removeEventListener?.("change", handler);
+      window.removeEventListener("resize", handleMQ);
+      mqlLandscape.removeEventListener?.("change", handleMQ);
+      mqlMobile.removeEventListener?.("change", handleMQ);
     };
   }, []);
 
-  // Scroll (progreso y estado scrolled)
+  /* ---------- Scroll + progreso ---------- */
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -54,18 +64,23 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Sección activa por ruta
+  /* ---------- Sección activa + detectar HERO detrás ---------- */
   useEffect(() => {
-    setActiveSection(location.pathname.replace("/", "") || "home");
+    const p = location.pathname.replace("/", "");
+    setActiveSection(p || "home");
+
+    const checkHero = () => setHasHeroBehind(Boolean(document.getElementById("hero")));
+    const t = setTimeout(checkHero, 0);
+    checkHero();
+    return () => clearTimeout(t);
   }, [location]);
 
-  // Cerrar con ESC y clic afuera
+  /* ---------- Cerrar drawer con Esc / click afuera ---------- */
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e) => e.key === "Escape" && setIsOpen(false);
     const onClickOutside = (e) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target))
-        setIsOpen(false);
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) setIsOpen(false);
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClickOutside);
@@ -75,18 +90,41 @@ const Navbar = () => {
     };
   }, [isOpen]);
 
-  // Bloquear scroll del body con drawer abierto
+  /* ---------- Bloqueo de scroll del body con drawer ---------- */
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = originalOverflow || "";
-    }
+    document.body.style.overflow = isOpen ? "hidden" : (originalOverflow || "");
     return () => {
       document.body.style.overflow = originalOverflow || "";
     };
   }, [isOpen]);
+
+  /* ---------- Medición de altura del header ---------- */
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderHeight(el.getBoundingClientRect().height);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  /* ---------- Body padding-top dinámico (sin HERO) ---------- */
+  useEffect(() => {
+    if (hasHeroBehind) {
+      document.body.style.paddingTop = "0px";
+    } else {
+      document.body.style.paddingTop = `${Math.ceil(headerHeight)}px`;
+    }
+    return () => {
+      document.body.style.paddingTop = "";
+    };
+  }, [hasHeroBehind, headerHeight]);
 
   const toggleMenu = () => setIsOpen((v) => !v);
   const closeMenu = () => setIsOpen(false);
@@ -96,10 +134,9 @@ const Navbar = () => {
   const linkActive = "text-mint";
   const linkIdle = "text-white hover:text-mint";
 
-  const renderLinks = (isMobile = false) =>
+  const renderLinks = (isMobileMenu = false) =>
     sections.map((section) => {
       const label = section.charAt(0).toUpperCase() + section.slice(1);
-
       if (section === "home") {
         return (
           <button
@@ -109,75 +146,77 @@ const Navbar = () => {
               navigate("/");
               setTimeout(() => {
                 const hero = document.getElementById("hero");
-                if (hero)
-                  hero.scrollIntoView({ behavior: "smooth", block: "start" });
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }, 80);
+                if (hero) hero.scrollIntoView({ behavior: "smooth", block: "start" });
+                else window.scrollTo({ top: 0, behavior: "smooth" });
+              }, 60);
             }}
-            className={`${linkBase} ${
-              activeSection === section ? linkActive : linkIdle
-            } ${isMobile ? "text-base" : "text-sm"}`}
+            className={`${linkBase} ${activeSection === section ? linkActive : linkIdle} ${isMobileMenu ? "text-base" : "text-sm"}`}
           >
             {label}
           </button>
         );
       }
-
       return (
         <Link
           key={section}
           to={`/${section}`}
           onClick={closeMenu}
-          className={`${linkBase} ${
-            activeSection === section ? linkActive : linkIdle
-          } ${isMobile ? "text-base" : "text-sm"}`}
+          className={`${linkBase} ${activeSection === section ? linkActive : linkIdle} ${isMobileMenu ? "text-base" : "text-sm"}`}
         >
           {label}
         </Link>
       );
     });
 
-  // Fondo dinámico
+  /* ---------- Fondo del header ---------- */
+  const isTopTransparent = !isOpen && !scrolled;
   const bgColor = isOpen
-    ? "rgba(11, 18, 34, 1)"
+    ? "rgba(11,18,34,1)"
     : scrolled
-    ? "rgba(5, 12, 38, 0.75)"
-    : "rgba(0, 0, 0, 0)";
+      ? "rgba(5,12,38,0.75)"
+      : "rgba(5,12,38,0.18)";
+
+  const backdropClass = isTopTransparent ? "backdrop-blur-0" : "backdrop-blur-md";
   const showBorder = isOpen || scrolled;
   const showShadow = isOpen || scrolled;
 
+  /* ---------- Alturas ---------- */
+  const headerHeightClasses =
+    isLandscapePhone
+      ? "h-12"
+      : isMobile
+        ? (scrolled || isOpen ? "h-14" : "h-16")
+        : (scrolled || isOpen ? "h-20" : "h-24");
+
+  const logoHeightClasses =
+    isLandscapePhone ? "h-8" : isMobile ? "h-10 sm:h-12" : "h-14 sm:h-16 lg:h-20";
+
   return (
     <>
-      {/* Barra de progreso */}
+      {/* Barra de progreso de scroll */}
       <div
         className="fixed top-0 left-0 h-1 bg-mint z-[70] transition-[width]"
         style={{ width: `${scrollProgress}%` }}
       />
 
       <header
-        className={`fixed top-0 left-0 w-full z-[65] transition-all duration-500`}
+        ref={headerRef}
+        className="fixed top-0 left-0 w-full z-[65] transition-all duration-500"
         role="navigation"
         aria-label="Principal"
-        style={{
-          paddingTop: "max(0px, env(safe-area-inset-top))",
-        }}
+        style={{ paddingTop: "max(0px, env(safe-area-inset-top))" }}
       >
-        {/* Fondo */}
+        {/* Fondo del header */}
         <div
-          className={`absolute inset-0 -z-10 backdrop-blur-md transition-all duration-500 ${
+          className={`absolute inset-0 -z-10 ${backdropClass} transition-all duration-500 ${
             showBorder ? "border-b border-white/10" : "border-b border-transparent"
           } ${showShadow ? "shadow-[0_8px_30px_rgba(0,0,0,0.28)]" : "shadow-none"}`}
           style={{ backgroundColor: bgColor }}
           aria-hidden="true"
         />
 
-        <div
-          className={`max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 flex justify-between items-center transition-all ${
-            // Alturas más compactas en landscape phone
-            isLandscapePhone ? "h-14" : scrolled || isOpen ? "h-20" : "h-24"
-          }`}
-        >
-          {/* Logo (más chico en landscape phone) */}
+        <div className={`max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 flex justify-between items-center transition-all ${headerHeightClasses}`}>
+          {/* Logo */}
           <Link
             to="/"
             className="flex items-center group"
@@ -185,21 +224,19 @@ const Navbar = () => {
             onClick={() => {
               if (location.pathname === "/") {
                 const hero = document.getElementById("hero");
-                if (hero)
-                  hero.scrollIntoView({ behavior: "smooth", block: "start" });
+                if (hero) hero.scrollIntoView({ behavior: "smooth", block: "start" });
                 else window.scrollTo({ top: 0, behavior: "smooth" });
               }
             }}
           >
             <img
-              src={logo}
+              src={sinewLogo}
               alt="SINEW Logo"
-              className={`w-auto transition-transform duration-300 group-hover:scale-[1.03] drop-shadow-[0_0_18px_rgba(152,245,225,0.25)]
-                ${isLandscapePhone ? "h-10" : "h-14 sm:h-16 lg:h-20"}`}
+              className={`w-auto transition-transform duration-300 group-hover:scale-[1.03] drop-shadow-[0_0_18px_rgba(152,245,225,0.25)] ${logoHeightClasses}`}
             />
           </Link>
 
-          {/* OJO: mantenemos hamburguesa también en landscape móvil (no usamos md:flex, sino lg:flex) */}
+          {/* Desktop nav */}
           <nav className="hidden lg:flex items-center gap-8 font-medium">
             <div className="group flex items-center gap-8">{renderLinks(false)}</div>
 
@@ -209,6 +246,7 @@ const Navbar = () => {
                   to="/login"
                   className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition relative group"
                   aria-label="Iniciar sesión"
+                  title="Iniciar sesión"
                 >
                   <ArrowRightOnRectangleIcon className="h-6 w-6 text-white group-hover:text-mint transition" />
                 </Link>
@@ -216,29 +254,53 @@ const Navbar = () => {
                   to="/register"
                   className="p-2 rounded-full bg-mint text-[#0d1b2a] hover:opacity-90 transition shadow-[0_0_18px_rgba(152,245,225,0.35)]"
                   aria-label="Registrarse"
+                  title="Crear cuenta"
                 >
                   <UserPlusIcon className="h-6 w-6" />
                 </Link>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  logout();
-                  navigate("/");
-                }}
-                className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition group"
-                aria-label="Cerrar sesión"
-              >
-                <ArrowLeftStartOnRectangleIcon className="h-6 w-6 text-white group-hover:text-mint transition" />
-              </button>
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/perfil"
+                  className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
+                  aria-label="Perfil"
+                  title="Mi perfil"
+                >
+                  <UserCircleIcon className="h-6 w-6 text-white hover:text-mint" />
+                </Link>
+
+                {/* Ajustes */}
+                <Link
+                  to="/ajustes"
+                  className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
+                  aria-label="Ajustes de cuenta"
+                  title="Ajustes"
+                >
+                  <Cog6ToothIcon className="h-6 w-6 text-white hover:text-mint" />
+                </Link>
+
+                <button
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
+                  className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition group"
+                  aria-label="Cerrar sesión"
+                  title="Cerrar sesión"
+                >
+                  <ArrowLeftStartOnRectangleIcon className="h-6 w-6 text-white group-hover:text-mint transition" />
+                </button>
+              </div>
             )}
           </nav>
 
-          {/* Hamburguesa (también para landscape móvil) */}
+          {/* Hamburguesa */}
           <button
             onClick={toggleMenu}
             className="lg:hidden relative w-10 h-10 focus:outline-none"
             aria-label="Abrir menú"
+            title="Menú"
           >
             <span
               className={`absolute h-[2px] w-6 bg-white left-2 transition-transform duration-300 ${
@@ -269,7 +331,7 @@ const Navbar = () => {
           <div className="flex items-center justify-between p-4 border-b border-white/10">
             <div className="flex items-center gap-3">
               <img
-                src={logo}
+                src={sinewLogo}
                 alt="SINEW"
                 className="h-14 w-auto transition-transform duration-300 hover:scale-105 drop-shadow-[0_0_20px_rgba(152,245,225,0.35)]"
               />
@@ -309,29 +371,43 @@ const Navbar = () => {
                 </Link>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  logout();
-                  closeMenu();
-                  navigate("/");
-                }}
-                aria-label="Cerrar sesión"
-                className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
-              >
-                <ArrowLeftStartOnRectangleIcon className="h-6 w-6 text-white hover:text-mint" />
-              </button>
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/perfil"
+                  onClick={closeMenu}
+                  aria-label="Perfil"
+                  className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
+                >
+                  <UserCircleIcon className="h-6 w-6 text-white hover:text-mint" />
+                </Link>
+
+                <Link
+                  to="/ajustes"
+                  onClick={closeMenu}
+                  aria-label="Ajustes"
+                  className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
+                >
+                  <Cog6ToothIcon className="h-6 w-6 text-white hover:text-mint" />
+                </Link>
+
+                <button
+                  onClick={() => {
+                    logout();
+                    closeMenu();
+                    navigate("/");
+                  }}
+                  aria-label="Cerrar sesión"
+                  className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
+                >
+                  <ArrowLeftStartOnRectangleIcon className="h-6 w-6 text-white hover:text-mint" />
+                </button>
+              </div>
             )}
           </nav>
         </div>
-
-        {/* Backdrop */}
-        {isOpen && (
-          <div
-            className="fixed inset-0 bg-black/70 z-[60] lg:hidden transition-opacity duration-500"
-            onClick={closeMenu}
-          />
-        )}
       </header>
+
+      {/* SIN spacer: el body ya tiene padding-top dinámico cuando no hay hero */}
     </>
   );
 };
