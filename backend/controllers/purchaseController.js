@@ -132,6 +132,26 @@ export const createOrder = async (req, res) => {
     const items = Array.isArray(req.body?.items) ? req.body.items : [];
     const meta  = req.body?.meta || {};
 
+    // Compatibilidad con payload "simple" (price, currency, title, metadata, buyer)
+if (!items.length && req.body?.price) {
+  const amountValue = Number(req.body.price ?? 35);
+  const currency    = String(req.body.currency ?? 'USD').toUpperCase();
+  const description = req.body.title || 'Producto SINEW';
+
+  items.push({
+    type: req.body.metadata?.type || 'book',
+    sku: req.body.metadata?.courseSlug || req.body.metadata?.slug || 'libro-001',
+    name: description,
+    quantity: 1,
+    unit_amount: amountValue,
+    currency,
+  });
+
+  if (!Object.keys(meta).length && req.body.metadata) {
+    Object.assign(meta, req.body.metadata);
+  }
+}
+
     // Defaults si no envían items
     const amountValue = Number(items?.[0]?.unit_amount ?? 35);
     const currency    = String(items?.[0]?.currency ?? 'USD').toUpperCase();

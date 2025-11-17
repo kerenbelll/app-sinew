@@ -20,25 +20,39 @@ export default function Checkout() {
 
   const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
   const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5001").replace(/\/$/, "");
-  const token = useMemo(() => localStorage.getItem("token") || localStorage.getItem("auth_token"), []);
+  const token = useMemo(
+    () => localStorage.getItem("token") || localStorage.getItem("auth_token"),
+    []
+  );
   const isLoggedIn = !!token;
 
-  const [formData, setFormData] = useState({ nombre: "", email: "", metodoPago: "paypal" });
+  const [formData, setFormData] = useState({
+    nombre: "",
+    email: "",
+    metodoPago: "paypal",
+  });
   const [errorMsg, setErrorMsg] = useState("");
   const [mpLoading, setMpLoading] = useState(false);
 
   const isEmailValid = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-  const isFormValid = formData.nombre.trim().length > 1 && isEmailValid(formData.email);
+  const isFormValid =
+    formData.nombre.trim().length > 1 && isEmailValid(formData.email);
 
-  const paypalOptions = useMemo(() => ({
-    "client-id": clientId || "",
-    currency: "USD",
-    intent: "capture",
-    components: "buttons",
-  }), [clientId]);
+  const paypalOptions = useMemo(
+    () => ({
+      "client-id": clientId || "",
+      currency: "USD",
+      intent: "capture",
+      components: "buttons",
+    }),
+    [clientId]
+  );
 
   const buttonStyle = useMemo(() => ({ layout: "vertical" }), []);
-  const handleChange = (e) => { setErrorMsg(""); setFormData({ ...formData, [e.target.name]: e.target.value }); };
+  const handleChange = (e) => {
+    setErrorMsg("");
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const requireLoginAndForm = () => {
     if (!isLoggedIn) {
@@ -54,23 +68,27 @@ export default function Checkout() {
   };
 
   // precios dinámicos
-  const currentUSD = productType === "book"
-    ? PRICE_USD_BOOK
-    : (COURSES.find(c => c.slug === courseSlug)?.priceUSD || "35.00");
+  const currentUSD =
+    productType === "book"
+      ? PRICE_USD_BOOK
+      : COURSES.find((c) => c.slug === courseSlug)?.priceUSD || "35.00";
 
-  const currentARS = productType === "book"
-    ? PRICE_ARS_BOOK
-    : (COURSES.find(c => c.slug === courseSlug)?.priceARS || 35000);
+  const currentARS =
+    productType === "book"
+      ? PRICE_ARS_BOOK
+      : COURSES.find((c) => c.slug === courseSlug)?.priceARS || 35000;
 
   // títulos dinámicos
-  const currentTitle = productType === "book"
-    ? "Libro digital - SINEW"
-    : (COURSES.find(c => c.slug === courseSlug)?.title || "Curso SINEW");
+  const currentTitle =
+    productType === "book"
+      ? "Libro digital - SINEW"
+      : COURSES.find((c) => c.slug === courseSlug)?.title || "Curso SINEW";
 
   // metadata para backend
-  const metadata = productType === "book"
-    ? { source: "checkout_spa" }
-    : { type: "course", slug: courseSlug };
+  const metadata =
+    productType === "book"
+      ? { source: "checkout_spa" }
+      : { type: "course", slug: courseSlug, courseSlug };
 
   // ===== MERCADO PAGO (usa helper unificado) =====
   const handleMercadoPago = async () => {
@@ -84,22 +102,30 @@ export default function Checkout() {
         price: Number(currentARS),
         currency: "ARS",
         title: currentTitle,
-        buyer: { name: formData.nombre || "APRO", email: formData.email },
+        buyer: {
+          name: formData.nombre || "APRO",
+          email: formData.email,
+        },
         metadata,
       });
 
       if (!pref) throw new Error("Respuesta vacía de la API de preferencias.");
-      const url = pref.sandbox_init_point || pref.init_point;
+
+      // 🔹 En producción priorizamos SIEMPRE init_point (checkout real)
+      const url = pref.init_point || pref.sandbox_init_point;
 
       if (!url) {
         throw new Error(
-          "La preferencia no devolvió URL de checkout. Verificá que el backend envíe `sandbox_init_point` e `init_point`, y que estés usando credenciales APP_USR de una cuenta de prueba (seller)."
+          "La preferencia no devolvió URL de checkout. Verificá que el backend envíe `init_point`/`sandbox_init_point` y que uses credenciales APP_USR válidas."
         );
       }
 
-      window.location.href = url; // prioriza sandbox
+      window.location.href = url;
     } catch (err) {
-      const msg = err?.response?.data?.error || err?.message || "No se pudo iniciar Mercado Pago.";
+      const msg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "No se pudo iniciar Mercado Pago.";
       setErrorMsg(`Error iniciando Mercado Pago.\nDetalle: ${msg}`);
     } finally {
       setMpLoading(false);
@@ -111,7 +137,10 @@ export default function Checkout() {
       <div className="w-full max-w-xl bg-[#0b1222]/70 backdrop-blur border border-white/10 shadow-2xl p-8 rounded-2xl space-y-8">
         <header className="text-center space-y-2">
           <h2 className="text-3xl font-bold tracking-tight">Finalizar compra</h2>
-          <p className="text-white/70 text-sm">Completá tus datos y elegí tu método de pago. El enlace de descarga es de un solo uso y vence en 24 h.</p>
+          <p className="text-white/70 text-sm">
+            Completá tus datos y elegí tu método de pago. El enlace de descarga
+            es de un solo uso y vence en 24 h.
+          </p>
         </header>
 
         {/* Producto */}
@@ -123,21 +152,31 @@ export default function Checkout() {
               onChange={(e) => setProductType(e.target.value)}
               className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
             >
-              <option className="bg-[#0b1222]" value="book">Libro (USD {PRICE_USD_BOOK})</option>
-              <option className="bg-[#0b1222]" value="course">Curso</option>
+              <option className="bg-[#0b1222]" value="book">
+                Libro (USD {PRICE_USD_BOOK})
+              </option>
+              <option className="bg-[#0b1222]" value="course">
+                Curso
+              </option>
             </select>
           </label>
 
           {productType === "course" && (
             <label className="block">
-              <span className="block text-sm text-white/70 mb-1">Seleccioná el curso</span>
+              <span className="block text-sm text-white/70 mb-1">
+                Seleccioná el curso
+              </span>
               <select
                 value={courseSlug}
                 onChange={(e) => setCourseSlug(e.target.value)}
                 className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
               >
-                {COURSES.map(c => (
-                  <option key={c.slug} className="bg-[#0b1222]" value={c.slug}>
+                {COURSES.map((c) => (
+                  <option
+                    key={c.slug}
+                    className="bg-[#0b1222]"
+                    value={c.slug}
+                  >
                     {c.title} (USD {c.priceUSD})
                   </option>
                 ))}
@@ -149,17 +188,34 @@ export default function Checkout() {
         {/* form usuario */}
         <div className="space-y-4">
           <label className="block">
-            <span className="block text-sm text-white/70 mb-1">Nombre completo</span>
-            <input name="nombre" value={formData.nombre} onChange={handleChange} className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white" />
+            <span className="block text-sm text-white/70 mb-1">
+              Nombre completo
+            </span>
+            <input
+              name="nombre"
+              value={formData.nombre}
+              onChange={handleChange}
+              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
+            />
           </label>
 
           <label className="block">
-            <span className="block text-sm text-white/70 mb-1">Correo electrónico</span>
-            <input name="email" type="email" value={formData.email} onChange={handleChange} className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white" />
+            <span className="block text-sm text-white/70 mb-1">
+              Correo electrónico
+            </span>
+            <input
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
+            />
           </label>
 
           <label className="block">
-            <span className="block text-sm text-white/70 mb-1">Método de pago</span>
+            <span className="block text-sm text-white/70 mb-1">
+              Método de pago
+            </span>
             <select
               name="metodoPago"
               value={formData.metodoPago}
@@ -170,7 +226,8 @@ export default function Checkout() {
                 PayPal (USD {currentUSD})
               </option>
               <option className="bg-[#0b1222]" value="mp">
-                Mercado Pago (ARS {Intl.NumberFormat("es-AR").format(currentARS)})
+                Mercado Pago (ARS{" "}
+                {Intl.NumberFormat("es-AR").format(currentARS)})
               </option>
             </select>
           </label>
@@ -182,50 +239,97 @@ export default function Checkout() {
           </div>
         )}
 
-        {/* PAYPAL */}
-        {formData.metodoPago === "paypal" && clientId && (
-          <PayPalScriptProvider options={paypalOptions}>
-            <div className="rounded-xl border border-white/10 p-4 bg-white/5">
-              <PayPalButtons
-                style={buttonStyle}
-                onClick={(data, actions) => (!requireLoginAndForm() ? actions.reject() : actions.resolve())}
-                createOrder={async () => {
-                  const { data } = await axios.post(
-                    `${API_BASE}/api/paypal/create-order`,
-                    {
-                      price: currentUSD, currency: "USD",
-                      title: currentTitle,
-                      metadata: productType === "course" ? { courseSlug } : {},
-                      buyer: { name: formData.nombre, email: formData.email },
-                    },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                  );
-                  return data.id;
-                }}
-                onApprove={async ({ orderID }) => {
-                  try {
-                    const res = await axios.post(
-                      `${API_BASE}/api/paypal/capture-order`,
-                      { orderID, email: formData.email, name: formData.nombre },
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    );
+{formData.metodoPago === "paypal" && clientId && (
+  <PayPalScriptProvider options={paypalOptions}>
+    <div className="rounded-xl border border-white/10 p-4 bg-white/5">
+      <PayPalButtons
+        style={buttonStyle}
+        onClick={(data, actions) =>
+          !requireLoginAndForm()
+            ? actions.reject()
+            : actions.resolve()
+        }
+        createOrder={async () => {
+          // Armamos payload alineado a purchaseController.createOrder
+          const isCourse = productType === "course";
 
-                    const redirectTo = res.data?.redirectTo || null;
-                    const downloadLink = res.data?.downloadLink || null;
-                    const payerName = formData.nombre;
+          const payload = {
+            items: [
+              {
+                type: isCourse ? "course" : "book",
+                sku: isCourse ? courseSlug : "libro-001",
+                name: currentTitle,
+                quantity: 1,
+                unit_amount: parseFloat(currentUSD),
+                currency: "USD",
+              },
+            ],
+            meta: isCourse
+              ? { courseSlug, buyerEmail: formData.email }
+              : { buyerEmail: formData.email },
+          };
 
-                    if (redirectTo) window.location.replace(redirectTo);
-                    else navigate("/gracias", { replace: true, state: { downloadLink, payerName } });
-                  } catch (err) {
-                    const msg = err?.response?.data?.error || err?.message || "Error capturando pago";
-                    setErrorMsg(msg);
-                  }
-                }}
-                onError={(err) => setErrorMsg(err?.message || "Error con PayPal")}
-              />
-            </div>
-          </PayPalScriptProvider>
-        )}
+          const { data } = await axios.post(
+            `${API_BASE}/api/paypal/create-order`,
+            payload,
+            {
+              // auth opcional, tu backend hoy no lo exige
+              headers: token
+                ? { Authorization: `Bearer ${token}` }
+                : undefined,
+            }
+          );
+
+          return data.id; // PayPal espera que devolvamos el orderID
+        }}
+        onApprove={async ({ orderID }) => {
+          try {
+            const isCourse = productType === "course";
+
+            const body = {
+              orderID,
+              email: formData.email,
+              name: formData.nombre,
+              ...(isCourse ? { courseSlug } : {}),
+            };
+
+            const res = await axios.post(
+              `${API_BASE}/api/paypal/capture-order`,
+              body,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const redirectTo = res.data?.redirectTo || null;
+            const downloadLink = res.data?.redirectTo
+              ? null
+              : res.data?.downloadLink || null;
+            const payerName = formData.nombre;
+
+            if (redirectTo) {
+              // Curso → te manda directo al curso o a /gracias ya con status
+              window.location.replace(redirectTo);
+            } else {
+              // Libro sin redirectTo directo: usamos <Gracias/>
+              navigate("/gracias", {
+                replace: true,
+                state: { downloadLink, payerName },
+              });
+            }
+          } catch (err) {
+            const msg =
+              err?.response?.data?.error ||
+              err?.message ||
+              "Error capturando pago";
+            setErrorMsg(msg);
+          }
+        }}
+        onError={(err) =>
+          setErrorMsg(err?.message || "Error con PayPal")
+        }
+      />
+    </div>
+  </PayPalScriptProvider>
+)}
 
         {/* MERCADO PAGO */}
         {formData.metodoPago === "mp" && (
@@ -233,11 +337,15 @@ export default function Checkout() {
             type="button"
             onClick={handleMercadoPago}
             disabled={mpLoading}
-            className={`w-full px-4 py-3 rounded-xl font-medium border border-mint text-mint hover:bg-mint hover:text-[#0d1b2a] transition ${mpLoading ? "opacity-70 cursor-not-allowed" : ""}`}
+            className={`w-full px-4 py-3 rounded-xl font-medium border border-mint text-mint hover:bg-mint hover:text-[#0d1b2a] transition ${
+              mpLoading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
             {mpLoading
               ? "Redirigiendo a Mercado Pago…"
-              : `Pagar con Mercado Pago (ARS ${Intl.NumberFormat("es-AR").format(currentARS)})`}
+              : `Pagar con Mercado Pago (ARS ${Intl.NumberFormat("es-AR").format(
+                  currentARS
+                )})`}
           </button>
         )}
       </div>

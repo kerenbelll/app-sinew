@@ -80,15 +80,19 @@ async function fulfillBookDownload({ userId, email, name }) {
       await sendPurchaseEmail({
         toEmail: email,
         buyerName: (name || "").trim() || "¡Hola!",
-        downloadLink: thankYouUrl,          // <— usar gracias
+        downloadLink: thankYouUrl,          // <— este se usa SOLO en el mail
       });
     } catch (e) {
       console.error("[MP] email libro error:", e?.message || e);
     }
   }
 
-  // si la ruta necesita devolver algo a frontend:
-  return { downloadLink: thankYouUrl, rawDownload: `/api/download/${token}` };
+  // Para el backend devolvemos tanto el link 'bonito'
+  // como el endpoint crudo de descarga
+  return {
+    downloadLink: thankYouUrl,
+    rawDownload: `/api/download/${token}`,
+  };
 }
 
 /* ───────── Ping ───────── */
@@ -127,7 +131,10 @@ router.post("/create-preference", async (req, res) => {
     const buyerName  = buyer?.name || "";
     const buyerEmail = buyer?.email || "";
 
-    const courseSlug = metadata?.courseSlug || (metadata?.type === "course" ? metadata?.slug : null) || null;
+    const courseSlug = metadata?.courseSlug
+      || (metadata?.type === "course" ? metadata?.slug : null)
+      || null;
+
     const itemId     = courseSlug ? `course:${courseSlug}` : "libro-001";
     const external_reference = courseSlug ? `course:${courseSlug}` : "book:libro-001";
 
@@ -154,12 +161,14 @@ router.post("/create-preference", async (req, res) => {
         unit_price: unitPrice,
         description: title
       }],
-      payer: { name: buyerName, email: buyerEmail || `test_${Date.now()}@testuser.com` },
+      payer: {
+        name: buyerName,
+        email: buyerEmail || `test_${Date.now()}@testuser.com`,
+      },
       back_urls,
       external_reference,
       metadata: { ...metadata, courseSlug, itemId, title },
-      // Importante: si querés, podés forzar binario en pruebas
-      // binary_mode: true,
+      // binary_mode: true,  // opcional para forzar sólo aprobado/rechazado
       ...(backendIsPublic ? {
         notification_url: `${BACKEND_URL}/api/mp/webhook`,
         auto_return: "approved",
@@ -168,7 +177,6 @@ router.post("/create-preference", async (req, res) => {
 
     const result = await preference.create({ body });
 
-    // ✅ SIEMPRE devolver lo que viene en `result.body`
     const b = result?.body || result;
     return res.status(201).json({
       id: b.id,
@@ -177,7 +185,10 @@ router.post("/create-preference", async (req, res) => {
     });
   } catch (err) {
     console.error("[MP] create-preference error:", err?.message || err);
-    return res.status(500).json({ error: "MP_CREATE_PREFERENCE_FAILED", message: err?.message || "Error" });
+    return res.status(500).json({
+      error: "MP_CREATE_PREFERENCE_FAILED",
+      message: err?.message || "Error",
+    });
   }
 });
 
@@ -224,13 +235,22 @@ router.get("/return", async (req, res) => {
     const amountValue    = data.transaction_amount;
     const amountCurrency = data.currency_id || "ARS";
     const orderId        = data.id;
-    const courseTitle    = data.description || data.metadata?.title || (courseSlug ? "Curso SINEW" : "Libro SINEW");
+    const courseTitle    =
+      data.description ||
+      data.metadata?.title ||
+      (courseSlug ? "Curso SINEW" : "Libro SINEW");
 
     // upsert user
     let userId;
     try {
       let user = await User.findOne({ email });
-      if (!user) user = await User.create({ name: (name || "").trim(), email, passwordHash: "TEMP" });
+      if (!user) {
+        user = await User.create({
+          name: (name || "").trim(),
+          email,
+          passwordHash: "TEMP",
+        });
+      }
       userId = user._id;
     } catch (e) {
       console.error("[MP return] upsert user error:", e?.message || e);
@@ -256,12 +276,21 @@ router.get("/return", async (req, res) => {
       }
     }
 
+    // 🔹 Flujo curso vs libro
     if (courseSlug) {
       await fulfillCourseAccess({ userId, email, name, courseSlug, courseTitle });
-      return res.redirect(`${FRONTEND_URL}/cursos/${courseSlug}?paid=1&success=1`);
+      return res.redirect(
+        `${FRONTEND_URL}/cursos/${courseSlug}?paid=1&success=1`
+      );
     } else {
-      const { downloadLink } = await fulfillBookDownload({ userId, email, name });
-      return res.redirect(`${FRONTEND_URL}/gracias?status=success&download=${encodeURIComponent(downloadLink)}`);
+      // ⚠️ CORREGIDO:
+      // usamos rawDownload ("/api/download/<token>")
+      // y se lo pasamos como ?download= al front,
+      // para evitar anidar /gracias dentro de /gracias.
+      const { rawDownload } = await fulfillBookDownload({ userId, email, name });
+      return res.redirect(
+        `${FRONTEND_URL}/gracias?status=success&download=${encodeURIComponent(rawDownload)}`
+      );
     }
   } catch (err) {
     console.error("[MP] return error:", err?.message || err);
@@ -272,12 +301,30 @@ router.get("/return", async (req, res) => {
 /* ───────── Webhook (GET/POST, payment y merchant_order) ───────── */
 router.all("/webhook", async (req, res) => {
   try {
-    if (!mpClient) return res.status(500).json({ received:true, error:"MP_NOT_CONFIGURED" });
+    if (!mpClient) {
+      return res
+        .status(500)
+        .json({ received: true, error: "MP_NOT_CONFIGURED" });
+    }
 
-    const topic = (req.query?.topic || req.body?.topic || req.body?.type || "").toString().toLowerCase();
-    const id    = (req.query?.id || req.body?.id || req.body?.data?.id || "").toString();
+    const topic = (
+      req.query?.topic || req.body?.topic || req.body?.type || ""
+    )
+      .toString()
+      .toLowerCase();
+    const id = (
+      req.query?.id ||
+      req.body?.id ||
+      req.body?.data?.id ||
+      ""
+    )
+      .toString();
+
     if (!topic || !id) {
-      console.warn("[MP webhook] request sin topic/id válidos", { query: req.query, body: req.body });
+      console.warn("[MP webhook] request sin topic/id válidos", {
+        query: req.query,
+        body: req.body,
+      });
       return res.json({ received: true });
     }
 
@@ -306,7 +353,13 @@ router.all("/webhook", async (req, res) => {
       let userId;
       try {
         let user = await User.findOne({ email });
-        if (!user) user = await User.create({ name: (name || "").trim(), email, passwordHash: "TEMP" });
+        if (!user) {
+          user = await User.create({
+            name: (name || "").trim(),
+            email,
+            passwordHash: "TEMP",
+          });
+        }
         userId = user._id;
       } catch (e) {
         console.error("[MP webhook] upsert user error:", e?.message || e);
@@ -337,7 +390,8 @@ router.all("/webhook", async (req, res) => {
       }
 
       // Fulfillment
-      const courseTitle = pay.description || (courseSlug ? "Curso SINEW" : "Libro SINEW");
+      const courseTitle =
+        pay.description || (courseSlug ? "Curso SINEW" : "Libro SINEW");
       if (courseSlug) {
         await fulfillCourseAccess({ userId, email, name, courseSlug, courseTitle });
       } else {
@@ -354,11 +408,18 @@ router.all("/webhook", async (req, res) => {
     }
 
     if (topic === "merchant_order") {
-      const r = await fetch(`https://api.mercadopago.com/merchant_orders/${id}`, {
-        headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
-      });
+      const r = await fetch(
+        `https://api.mercadopago.com/merchant_orders/${id}`,
+        {
+          headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+        }
+      );
       if (!r.ok) {
-        console.error("[MP webhook] merchant_orders fetch error", r.status, r.statusText);
+        console.error(
+          "[MP webhook] merchant_orders fetch error",
+          r.status,
+          r.statusText
+        );
         return res.json({ received: true, ok: false, topic: "merchant_order" });
       }
       const mo = await r.json();
@@ -369,7 +430,11 @@ router.all("/webhook", async (req, res) => {
             const full = await paymentSdk.get({ id: String(p.id) });
             await processApprovedPayment(full);
           } catch (e) {
-            console.error("[MP webhook] error trayendo payment", p?.id, e?.message || e);
+            console.error(
+              "[MP webhook] error trayendo payment",
+              p?.id,
+              e?.message || e
+            );
           }
         }
       } else {

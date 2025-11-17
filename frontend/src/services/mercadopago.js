@@ -19,32 +19,28 @@ export async function createPreference({ price, currency = "ARS", title, buyer =
     throw new Error(message);
   }
 
-  // Normalizamos posibles formas:
-  //  - { id, init_point, sandbox_init_point }
-  //  - { body: { id, init_point, sandbox_init_point } }
   const src = payload?.body && typeof payload.body === "object" ? payload.body : payload;
 
   const id = src?.id || payload?.id || payload?.body?.id || null;
 
-  // preferimos sandbox si existe; contemplamos todas las ubicaciones posibles
-  const sandboxInit =
-    src?.sandbox_init_point ??
-    payload?.sandbox_init_point ??
-    payload?.body?.sandbox_init_point ??
-    null;
-
+  // ⚠️ AHORA: preferimos SIEMPRE init_point (checkout "normal")
   const initPoint =
-    // si hay sandbox, usamos sandbox sí o sí
-    sandboxInit ||
     src?.init_point ||
     payload?.init_point ||
     payload?.body?.init_point ||
+    src?.sandbox_init_point || // fallback si algún día lo necesitás
+    payload?.sandbox_init_point ||
+    payload?.body?.sandbox_init_point ||
     null;
 
   if (!id || !initPoint) {
-    console.warn("MP payload:", payload); // 👈 ayuda a debuguear
+    console.warn("MP payload:", payload);
     throw new Error("Respuesta de MP sin 'id' o 'init_point'.");
   }
 
-  return { id, init_point: initPoint, sandbox_init_point: sandboxInit };
+  return {
+    id,
+    init_point: initPoint,
+    sandbox_init_point: src?.sandbox_init_point || payload?.sandbox_init_point || null,
+  };
 }

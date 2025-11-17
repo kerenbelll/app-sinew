@@ -38,7 +38,9 @@ export default function BuyButtons({
           ? { type, slug, courseSlug: slug }
           : { type: "book" },
       });
-      const initPoint = pref.sandbox_init_point || pref.init_point;
+
+      // 🔹 Producción: priorizamos init_point
+      const initPoint = pref?.init_point || pref?.sandbox_init_point;
       if (!initPoint) throw new Error("Sin enlace de pago");
       window.location.href = initPoint;
     } catch (err) {

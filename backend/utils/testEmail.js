@@ -1,23 +1,17 @@
-import { Resend } from 'resend';
-import dotenv from 'dotenv';
+import { sendCourseAccessEmail } from "../utils/mailer.js";
 
-dotenv.config();
+const email = process.argv[2] || "kerenbelmart@gmail.com";
 
-async function sendTestEmail() {
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+(async () => {
+  console.log("Enviando mail de prueba a:", email);
 
-    const result = await resend.emails.send({
-      from: 'SINEW <info@sineworg.com>',  // tu dominio verificado en Resend
-      to: 'kerenbelmart@gmail.com',        // poné tu casilla real para probar
-      subject: 'Prueba de envío con Resend ✅',
-      html: '<p>Hola! Este es un correo de <strong>prueba</strong> enviado con Resend.</p>',
-    });
+  const r = await sendCourseAccessEmail({
+    toEmail: email,
+    buyerName: "Prueba Estética",
+    courseTitle: "Renovación de la Mente",
+    courseUrl: "https://sineworg.com/cursos/masterclass?paid=1"
+  });
 
-    console.log('Correo enviado:', result);
-  } catch (err) {
-    console.error('Error enviando correo:', err);
-  }
-}
-
-sendTestEmail();
+  console.log("Resultado:", r);
+  process.exit(0);
+})();
