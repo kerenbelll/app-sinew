@@ -5,17 +5,15 @@ import Hero from "../components/Hero";
 import Ramas from "../components/Ramas";
 import { motion } from "framer-motion";
 import LibroVenta from "../components/LibroVenta";
-import ModalPublicidad from "../components/ModalPublicidad";
 import FondoParticulas from "../components/FondoParticulas";
 
 export default function Home() {
-  const [showModal, setShowModal] = useState(false);
   const videoRef = useRef(null);
 
   useEffect(() => {
-    setShowModal(true);
 
     const observer = new IntersectionObserver(
+      
       ([entry]) => {
         if (entry.isIntersecting) {
           videoRef.current?.play().catch(() => {});
@@ -63,8 +61,6 @@ export default function Home() {
 
       {/* Partículas SIEMPRE por detrás del contenido (z-index negativo) */}
       <FondoParticulas className="pointer-events-none fixed inset-0 -z-10 opacity-70" />
-
-      {showModal && <ModalPublicidad onClose={() => setShowModal(false)} />}
 
       <Hero />
       <Ramas />
