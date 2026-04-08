@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import FondoParticulas from "./FondoParticulas";
 import portada2 from "../assets/img/portada.jpg";
 
-/* ===== CTA estilo Hero (glass + flecha) ===== */
 function GlassButton({ to, children, className = "", ariaLabel }) {
   return (
     <Link
@@ -14,12 +13,11 @@ function GlassButton({ to, children, className = "", ariaLabel }) {
       aria-label={ariaLabel}
       className={[
         "group inline-flex w-full items-center justify-center gap-2",
-        "rounded-full border border-white/15 bg-white/5 px-6 py-3",
-        "text-sm sm:text-base text-white/90 backdrop-blur",
-        "shadow-[0_0_25px_rgba(152,245,225,0.18)]",
+        "rounded-full border border-white/12 bg-white/[0.04] px-6 py-3",
+        "text-sm sm:text-base text-white/90 backdrop-blur-md",
         "transition duration-300",
-        "hover:bg-white/10 hover:border-white/25 hover:shadow-[0_0_35px_rgba(152,245,225,0.35)]",
-        "focus:outline-none focus:ring-2 focus:ring-mint/50",
+        "hover:bg-white/[0.08] hover:border-white/20",
+        "focus:outline-none focus:ring-2 focus:ring-mint/40",
         className,
       ].join(" ")}
     >
@@ -34,7 +32,6 @@ function GlassButton({ to, children, className = "", ariaLabel }) {
   );
 }
 
-/* ===== Variante primaria sutil (más “acción”) pero sin romper estética ===== */
 function GlassPrimaryButton({ to, children, ariaLabel }) {
   return (
     <Link
@@ -42,12 +39,11 @@ function GlassPrimaryButton({ to, children, ariaLabel }) {
       aria-label={ariaLabel}
       className={[
         "group inline-flex w-full items-center justify-center gap-2",
-        "rounded-full border border-mint/40 bg-mint/15 px-6 py-3",
-        "text-sm sm:text-base text-white backdrop-blur",
-        "shadow-[0_0_28px_rgba(152,245,225,0.22)]",
+        "rounded-full border border-mint/25 bg-mint/10 px-6 py-3",
+        "text-sm sm:text-base text-white backdrop-blur-md",
         "transition duration-300",
-        "hover:bg-mint/20 hover:border-mint/55 hover:shadow-[0_0_40px_rgba(152,245,225,0.35)]",
-        "focus:outline-none focus:ring-2 focus:ring-mint/50",
+        "hover:bg-mint/16 hover:border-mint/40",
+        "focus:outline-none focus:ring-2 focus:ring-mint/40",
       ].join(" ")}
     >
       {children}
@@ -65,141 +61,169 @@ export default function LibroVenta() {
   return (
     <motion.section
       id="libroventa"
-      className="relative min-h-screen bg-gradient-to-br from-[#0d1b2a] via-[#1b263b] to-[#415a77] text-white overflow-hidden px-6 py-28 md:py-36"
-      initial={{ opacity: 0, y: 30 }}
+      className="relative overflow-hidden bg-[#0b1222] text-white px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-20 md:py-24 xl:py-28"
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.9 }}
+      viewport={{ once: true, amount: 0.18 }}
+      transition={{ duration: 0.8 }}
     >
-      {/* Glows (fondo) */}
       <div className="pointer-events-none absolute inset-0 z-0">
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[44rem] h-[44rem] rounded-full blur-3xl opacity-10 bg-[#98f5e1]" />
-        <div className="absolute -bottom-32 right-1/3 w-[36rem] h-[36rem] rounded-full blur-3xl opacity-10 bg-[#98f5e1]" />
+        <div className="absolute top-[-8rem] left-1/2 -translate-x-1/2 h-[28rem] w-[28rem] rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute bottom-[-10rem] right-[10%] h-[22rem] w-[22rem] rounded-full bg-[#98f5e1]/[0.05] blur-3xl" />
       </div>
 
-      {/* Partículas encima de glows */}
-      <FondoParticulas className="z-10" />
+      <FondoParticulas className="pointer-events-none z-10 opacity-28" />
 
-      {/* Contenido */}
-      <div className="relative z-20 max-w-6xl mx-auto">
+      <div className="relative z-20 mx-auto w-full max-w-[1800px]">
         <motion.div
-          whileHover={{ scale: 1.01 }}
-          transition={{ duration: 0.3 }}
-          className="relative mx-auto w-full rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-6 md:p-10 shadow-[0_0_60px_rgba(152,245,225,0.08)]"
+          whileHover={{ scale: 1.003 }}
+          transition={{ duration: 0.25 }}
+          className="relative overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.035] backdrop-blur-xl shadow-[0_24px_80px_rgba(0,0,0,0.28)]"
         >
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h2 className="text-4xl md:text-5xl font-extrabold uppercase tracking-wide font-grotesk text-mint drop-shadow-[0_0_14px_rgba(167,255,235,0.9)]">
-              Hábitos Integrativos
-            </h2>
-            <span className="block mx-auto mt-4 h-1 w-28 rounded-full bg-mint/80" />
-            <p className="text-white/80 text-lg md:text-xl font-sans mt-6">
-              Pequeña guía para unificar espíritu, alma y cuerpo
-            </p>
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_25%,transparent_75%,rgba(255,255,255,0.015))]" />
+            <div className="absolute top-0 left-[12%] h-[16rem] w-[16rem] rounded-full bg-white/[0.03] blur-3xl" />
+            <div className="absolute bottom-0 right-[8%] h-[14rem] w-[14rem] rounded-full bg-[#98f5e1]/[0.04] blur-3xl" />
           </div>
 
-          {/* Contenido principal */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-14 items-center">
-            {/* Portada */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-0">
+            {/* Cover digital */}
             <motion.div
-              className="lg:col-span-5 flex justify-center"
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              className="xl:col-span-4 border-b xl:border-b-0 xl:border-r border-white/10 p-6 sm:p-8 md:p-10 xl:p-12 flex items-center justify-center"
+              initial={{ opacity: 0, x: -18 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.05 }}
+            >
+              <div className="w-full max-w-[320px] sm:max-w-[360px] xl:max-w-[390px]">
+                <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-3 md:p-4 shadow-[0_18px_40px_rgba(0,0,0,0.22)]">
+                  <div className="relative rounded-[22px] overflow-hidden bg-[#0f1728]">
+                    <img
+                      src={portada2}
+                      alt="Portada e-book Hábitos Integrativos"
+                      className="w-full h-auto object-contain select-none"
+                      draggable={false}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className="pointer-events-none absolute inset-0 ring-1 ring-white/8 rounded-[22px]" />
+                  </div>
+                </div>
+
+                <div className="mt-5 text-center">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/68">
+                    <span className="h-2 w-2 rounded-full bg-mint/80" />
+                    E-book digital
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Contenido */}
+            <motion.div
+              className="xl:col-span-8 p-6 sm:p-8 md:p-10 xl:p-12 2xl:p-14"
+              initial={{ opacity: 0, x: 18 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              whileHover={{ scale: 1.05 }}
             >
-              <img
-                src={portada2}
-                alt="Portada libro Hábitos Integrativos"
-                className="w-full max-w-[320px] object-cover rounded-2xl select-none drop-shadow-[0_10px_30px_rgba(0,0,0,0.35)]"
-                draggable={false}
-                loading="lazy"
-              />
-            </motion.div>
+              <div className="max-w-4xl">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-white/45">
+                  E-book
+                </p>
 
-            {/* Texto */}
-            <motion.div
-              className="lg:col-span-7 space-y-6 text-left text-white/90 font-sans text-base leading-relaxed"
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.15 }}
-            >
-              <p>
-                <strong className="text-mint font-semibold tracking-wide">
-                  HÁBITOS INTEGRATIVOS
-                </strong>{" "}
-                es una invitación práctica y bíblica a restaurar la unidad e
-                integridad interior mediante disciplinas espirituales simples
-                pero poderosas.
-              </p>
-              <p>
-                En un mundo que fragmenta nuestra atención y separa lo
-                espiritual de lo cotidiano, este libro propone volver a una vida
-                integral, alineada con el diseño de Dios que nos alista mientras
-                nos acercamos al fin de la era. Nos brinda herramientas para
-                cultivar aceite y estar atentos al tiempo.
-              </p>
+                <h2 className="mt-4 text-[clamp(30px,4vw,58px)] font-semibold tracking-tight leading-[0.95] text-white">
+                  Hábitos Integrativos
+                </h2>
 
-              <blockquote className="border-l-4 border-mint pl-6 italic text-mint bg-white/10 py-5 rounded-xl shadow-[inset_0_0_12px_rgba(167,255,235,0.2)]">
-                “Y el mismo Dios de paz os santifique por completo; y todo
-                vuestro ser, espíritu, alma y cuerpo, sea guardado irreprensible
-                PARA LA VENIDA DE NUESTRO SEÑOR JESUCRISTO.”
-                <span className="text-sm block mt-2 text-mint/80">
-                  (1 Tesalonicenses 5:23 - énfasis del autor)
-                </span>
-              </blockquote>
+                <p className="mt-4 text-white/72 text-[16px] md:text-[20px] leading-7 md:leading-8">
+                  Pequeña guía para unificar espíritu, alma y cuerpo
+                </p>
 
-              <p>
-                Cada capítulo explora una disciplina —como la meditación bíblica,
-                la escritura de la Palabra o el ayuno— con fundamentos bíblicos
-                claros y respaldo científico. No se trata de rituales vacíos,
-                sino de herramientas concretas para renovar nuestra mente y
-                entrenarnos como discípulos en esta generación.
-              </p>
-              <p>
-                El objetivo no es imponer cargas, sino ofrecer caminos claros
-                para que la Mente de Cristo se forme en nosotros. Al unificar
-                pensamientos, emociones, cuerpo y espíritu, el carácter de Jesús
-                crece con mayor plenitud, y nuestra vida entera se convierte en
-                una ofrenda viva.
-              </p>
+                <div className="mt-6 h-px w-24 bg-gradient-to-r from-white/35 to-transparent" />
+              </div>
+
+              <div className="mt-8 grid grid-cols-1 2xl:grid-cols-12 gap-8 xl:gap-10">
+                <div className="2xl:col-span-8 space-y-5 text-white/88 text-[15px] md:text-[16px] leading-7 md:leading-8">
+                  <p>
+                    <strong className="text-white font-semibold tracking-wide">
+                      HÁBITOS INTEGRATIVOS
+                    </strong>{" "}
+                    es una invitación práctica y bíblica a restaurar la unidad e
+                    integridad interior mediante disciplinas espirituales simples
+                    pero poderosas.
+                  </p>
+
+                  <p>
+                    En un mundo que fragmenta nuestra atención y separa lo
+                    espiritual de lo cotidiano, este libro propone volver a una vida
+                    integral, alineada con el diseño de Dios que nos alista mientras
+                    nos acercamos al fin de la era. Nos brinda herramientas para
+                    cultivar aceite y estar atentos al tiempo.
+                  </p>
+
+                  <blockquote className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-5 md:px-6 md:py-6 text-white/90 italic shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                    “Y el mismo Dios de paz os santifique por completo; y todo
+                    vuestro ser, espíritu, alma y cuerpo, sea guardado irreprensible
+                    PARA LA VENIDA DE NUESTRO SEÑOR JESUCRISTO.”
+                    <span className="block mt-3 text-sm text-white/60 not-italic">
+                      (1 Tesalonicenses 5:23 - énfasis del autor)
+                    </span>
+                  </blockquote>
+
+                  <p>
+                    Cada capítulo explora una disciplina —como la meditación bíblica,
+                    la escritura de la Palabra o el ayuno— con fundamentos bíblicos
+                    claros y respaldo científico. No se trata de rituales vacíos,
+                    sino de herramientas concretas para renovar nuestra mente y
+                    entrenarnos como discípulos en esta generación.
+                  </p>
+
+                  <p>
+                    El objetivo no es imponer cargas, sino ofrecer caminos claros
+                    para que la Mente de Cristo se forme en nosotros. Al unificar
+                    pensamientos, emociones, cuerpo y espíritu, el carácter de Jesús
+                    crece con mayor plenitud, y nuestra vida entera se convierte en
+                    una ofrenda viva.
+                  </p>
+                </div>
+
+                <div className="2xl:col-span-4">
+                  <div className="rounded-[26px] border border-white/10 bg-white/[0.035] p-5 md:p-6">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                      Disponible ahora
+                    </p>
+
+                    <p className="mt-4 text-2xl md:text-3xl font-semibold text-white">
+                      Precio: 12900 AR
+                    </p>
+
+                    <div className="mt-6 grid grid-cols-1 gap-3">
+                      <GlassPrimaryButton
+                        to="/checkout"
+                        ariaLabel="Comprar ahora"
+                      >
+                        Comprar ahora
+                      </GlassPrimaryButton>
+
+                      <GlassButton
+                        to="/login"
+                        ariaLabel="Iniciar sesión"
+                      >
+                        Iniciar sesión
+                      </GlassButton>
+                    </div>
+
+                    <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+                    <div className="mt-6 h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div className="h-full w-2/3 animate-pulse bg-mint/70" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
-
-          {/* Footer CTA (botones modernizados) */}
-          <motion.div
-            className="mt-12 flex flex-col items-center gap-5 max-w-md mx-auto text-center"
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <p className="text-2xl font-bold text-mint drop-shadow-[0_0_14px_rgba(167,255,235,0.9)]">
-              Precio: 12900 AR
-            </p>
-
-            <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Primary sutil (no sólido) */}
-              <GlassPrimaryButton to="/checkout" ariaLabel="Comprar ahora">
-                Comprar ahora
-              </GlassPrimaryButton>
-
-              {/* Secondary glass */}
-              <GlassButton to="/login" ariaLabel="Iniciar sesión">
-                Iniciar sesión
-              </GlassButton>
-            </div>
-
-            <div className="w-full mt-6 h-2 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full w-2/3 animate-pulse bg-mint/80" />
-            </div>
-          </motion.div>
-
-          {/* Glows decorativos suaves */}
-          <div className="pointer-events-none absolute -top-6 -right-6 size-24 rounded-full bg-mint/15 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-10 -left-10 size-40 rounded-full bg-mint/10 blur-3xl" />
         </motion.div>
       </div>
     </motion.section>

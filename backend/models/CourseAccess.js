@@ -10,7 +10,7 @@ const CourseAccessSchema = new mongoose.Schema(
       enum: ["purchase", "manual", "simulated", "admin", "gift", "mercadopago", "paypal"],
       default: "purchase",
     },
-    provider: { type: String },                // p/ ver origen (mercadopago|paypal|…)
+    provider: { type: String },
     grantedAt: { type: Date, default: Date.now },
     notes: { type: String },
   },
@@ -22,4 +22,4 @@ const CourseAccessSchema = new mongoose.Schema(
 
 CourseAccessSchema.index({ userId: 1, courseSlug: 1 }, { unique: true });
 
-export default mongoose.model("CourseAccess", CourseAccessSchema);
+export default mongoose.models.CourseAccess || mongoose.model("CourseAccess", CourseAccessSchema);

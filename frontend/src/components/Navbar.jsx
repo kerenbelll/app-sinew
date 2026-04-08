@@ -1,4 +1,3 @@
-// src/components/Navbar.jsx
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
@@ -12,7 +11,14 @@ import {
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 
-const sections = ["home", "cursos", "comunidad", "contacto"];
+const sections = [
+  "home",
+  "sobre-nosotros",
+  "comunidad",
+  "cursos",
+  "red-sinew",
+  "contacto",
+];
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,7 +28,6 @@ const Navbar = () => {
   const [isLandscapePhone, setIsLandscapePhone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Altura real + detección de HERO detrás
   const [headerHeight, setHeaderHeight] = useState(0);
   const [hasHeroBehind, setHasHeroBehind] = useState(false);
 
@@ -32,19 +37,21 @@ const Navbar = () => {
   const headerRef = useRef(null);
   const { user, logout } = useUser();
 
-  /* ---------- Media queries (móvil / landscape bajo) ---------- */
   useEffect(() => {
     const mqlLandscape = window.matchMedia("(orientation: landscape)");
     const mqlMobile = window.matchMedia("(max-width: 1023px)");
+
     const handleMQ = () => {
       const h = window.innerHeight;
       setIsLandscapePhone(mqlLandscape.matches && h <= 500);
       setIsMobile(mqlMobile.matches);
     };
+
     handleMQ();
     window.addEventListener("resize", handleMQ);
     mqlLandscape.addEventListener?.("change", handleMQ);
     mqlMobile.addEventListener?.("change", handleMQ);
+
     return () => {
       window.removeEventListener("resize", handleMQ);
       mqlLandscape.removeEventListener?.("change", handleMQ);
@@ -52,19 +59,19 @@ const Navbar = () => {
     };
   }, []);
 
-  /* ---------- Scroll + progreso ---------- */
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
       const total = document.documentElement.scrollHeight - window.innerHeight;
       setScrollProgress(total > 0 ? (window.scrollY / total) * 100 : 0);
     };
+
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  /* ---------- Sección activa + detectar HERO detrás ---------- */
   useEffect(() => {
     const p = location.pathname.replace("/", "");
     setActiveSection(p || "home");
@@ -72,55 +79,62 @@ const Navbar = () => {
     const checkHero = () => setHasHeroBehind(Boolean(document.getElementById("hero")));
     const t = setTimeout(checkHero, 0);
     checkHero();
+
     return () => clearTimeout(t);
   }, [location]);
 
-  /* ---------- Cerrar drawer con Esc / click afuera ---------- */
   useEffect(() => {
     if (!isOpen) return;
+
     const onKey = (e) => e.key === "Escape" && setIsOpen(false);
     const onClickOutside = (e) => {
-      if (drawerRef.current && !drawerRef.current.contains(e.target)) setIsOpen(false);
+      if (drawerRef.current && !drawerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
     };
+
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onClickOutside);
+
     return () => {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onClickOutside);
     };
   }, [isOpen]);
 
-  /* ---------- Bloqueo de scroll del body con drawer ---------- */
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = isOpen ? "hidden" : (originalOverflow || "");
+    document.body.style.overflow = isOpen ? "hidden" : originalOverflow || "";
+
     return () => {
       document.body.style.overflow = originalOverflow || "";
     };
   }, [isOpen]);
 
-  /* ---------- Medición de altura del header ---------- */
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
+
     const measure = () => setHeaderHeight(el.getBoundingClientRect().height);
     measure();
+
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     window.addEventListener("resize", measure);
+
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
   }, []);
 
-  /* ---------- Body padding-top dinámico (sin HERO) ---------- */
   useEffect(() => {
     if (hasHeroBehind) {
       document.body.style.paddingTop = "0px";
     } else {
       document.body.style.paddingTop = `${Math.ceil(headerHeight)}px`;
     }
+
     return () => {
       document.body.style.paddingTop = "";
     };
@@ -134,66 +148,96 @@ const Navbar = () => {
   const linkActive = "text-mint";
   const linkIdle = "text-white hover:text-mint";
 
+  const getLabel = (section) => {
+    switch (section) {
+      case "home":
+        return "Home";
+      case "cursos":
+        return "Recursos";
+      case "sobre-nosotros":
+        return "Sobre Nosotros";
+      case "red-sinew":
+        return "Red Sinew";
+      default:
+        return section.charAt(0).toUpperCase() + section.slice(1);
+    }
+  };
+
   const renderLinks = (isMobileMenu = false) =>
     sections.map((section) => {
-      const label = section.charAt(0).toUpperCase() + section.slice(1);
+      const label = getLabel(section);
+
       if (section === "home") {
         return (
           <button
             key={section}
             onClick={() => {
               closeMenu();
-              navigate("/");
-              setTimeout(() => {
+            
+              if (location.pathname === "/") {
                 const hero = document.getElementById("hero");
-                if (hero) hero.scrollIntoView({ behavior: "smooth", block: "start" });
-                else window.scrollTo({ top: 0, behavior: "smooth" });
-              }, 60);
+                if (hero) {
+                  hero.scrollIntoView({ behavior: "smooth", block: "start" });
+                } else {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+                return;
+              }
+            
+              navigate("/");
             }}
-            className={`${linkBase} ${activeSection === section ? linkActive : linkIdle} ${isMobileMenu ? "text-base" : "text-sm"}`}
+            className={`${linkBase} ${
+              activeSection === section ? linkActive : linkIdle
+            } ${isMobileMenu ? "text-base" : "text-sm"}`}
           >
             {label}
           </button>
         );
       }
+
       return (
         <Link
           key={section}
           to={`/${section}`}
           onClick={closeMenu}
-          className={`${linkBase} ${activeSection === section ? linkActive : linkIdle} ${isMobileMenu ? "text-base" : "text-sm"}`}
+          className={`${linkBase} ${
+            activeSection === section ? linkActive : linkIdle
+          } ${isMobileMenu ? "text-base" : "text-sm"}`}
         >
           {label}
         </Link>
       );
     });
 
-  /* ---------- Fondo del header ---------- */
   const isTopTransparent = !isOpen && !scrolled;
   const bgColor = isOpen
     ? "rgba(11,18,34,1)"
     : scrolled
-      ? "rgba(5,12,38,0.75)"
-      : "rgba(5,12,38,0.18)";
+    ? "rgba(5,12,38,0.75)"
+    : "rgba(5,12,38,0.18)";
 
   const backdropClass = isTopTransparent ? "backdrop-blur-0" : "backdrop-blur-md";
   const showBorder = isOpen || scrolled;
   const showShadow = isOpen || scrolled;
 
-  /* ---------- Alturas ---------- */
-  const headerHeightClasses =
-    isLandscapePhone
-      ? "h-12"
-      : isMobile
-        ? (scrolled || isOpen ? "h-14" : "h-16")
-        : (scrolled || isOpen ? "h-20" : "h-24");
+  const headerHeightClasses = isLandscapePhone
+    ? "h-12"
+    : isMobile
+    ? scrolled || isOpen
+      ? "h-14"
+      : "h-16"
+    : scrolled || isOpen
+    ? "h-20"
+    : "h-24";
 
-  const logoHeightClasses =
-    isLandscapePhone ? "h-8" : isMobile ? "h-10 sm:h-12" : "h-14 sm:h-16 lg:h-20";
+  const logoHeightClasses = isLandscapePhone
+    ? "h-8"
+    : isMobile
+    ? "h-10 sm:h-12"
+    : "h-14 sm:h-16 lg:h-20";
 
   return (
     <>
-      {/* Barra de progreso de scroll */}
       <div
         className="fixed top-0 left-0 h-1 bg-mint z-[70] transition-[width]"
         style={{ width: `${scrollProgress}%` }}
@@ -206,7 +250,6 @@ const Navbar = () => {
         aria-label="Principal"
         style={{ paddingTop: "max(0px, env(safe-area-inset-top))" }}
       >
-        {/* Fondo del header */}
         <div
           className={`absolute inset-0 -z-10 ${backdropClass} transition-all duration-500 ${
             showBorder ? "border-b border-white/10" : "border-b border-transparent"
@@ -215,11 +258,12 @@ const Navbar = () => {
           aria-hidden="true"
         />
 
-        <div className={`max-w-screen-xl mx-auto px-3 sm:px-6 lg:px-8 flex justify-between items-center transition-all ${headerHeightClasses}`}>
-          {/* Logo */}
+        <div
+          className={`w-full px-4 sm:px-6 lg:px-8 xl:px-10 2xl:px-14 flex justify-between items-center transition-all ${headerHeightClasses}`}
+        >
           <Link
             to="/"
-            className="flex items-center group"
+            className="flex items-center group shrink-0"
             aria-label="Ir al inicio"
             onClick={() => {
               if (location.pathname === "/") {
@@ -236,12 +280,13 @@ const Navbar = () => {
             />
           </Link>
 
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-8 font-medium">
-            <div className="group flex items-center gap-8">{renderLinks(false)}</div>
+          <nav className="hidden lg:flex items-center gap-8 xl:gap-12 font-medium ml-8">
+            <div className="flex items-center gap-6 xl:gap-8 2xl:gap-10">
+              {renderLinks(false)}
+            </div>
 
             {!user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 xl:gap-4 ml-2">
                 <Link
                   to="/login"
                   className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition relative group"
@@ -260,7 +305,7 @@ const Navbar = () => {
                 </Link>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 xl:gap-4 ml-2">
                 <Link
                   to="/perfil"
                   className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
@@ -270,7 +315,6 @@ const Navbar = () => {
                   <UserCircleIcon className="h-6 w-6 text-white hover:text-mint" />
                 </Link>
 
-                {/* Ajustes */}
                 <Link
                   to="/ajustes"
                   className="p-2 rounded-full bg-white/10 hover:bg-mint/20 transition"
@@ -295,7 +339,6 @@ const Navbar = () => {
             )}
           </nav>
 
-          {/* Hamburguesa */}
           <button
             onClick={toggleMenu}
             className="lg:hidden relative w-10 h-10 focus:outline-none"
@@ -320,7 +363,6 @@ const Navbar = () => {
           </button>
         </div>
 
-        {/* Drawer móvil */}
         <div
           ref={drawerRef}
           className={`fixed top-0 right-0 h-full w-72 bg-[#0b1222] text-white transform transition-transform duration-300 z-[70] border-l border-white/10 shadow-2xl ${
@@ -406,8 +448,6 @@ const Navbar = () => {
           </nav>
         </div>
       </header>
-
-      {/* SIN spacer: el body ya tiene padding-top dinámico cuando no hay hero */}
     </>
   );
 };

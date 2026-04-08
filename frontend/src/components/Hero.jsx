@@ -1,93 +1,160 @@
 // src/components/Hero.jsx
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import heroImage from "../assets/img/sinew6.jpg";
 import useScrollReveal from "../hooks/useScrollReveal";
 import Logo from "../assets/img/A1.png";
 
+function RevealText({ children, className = "", delay = 0 }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.75, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 const Hero = () => {
   useScrollReveal();
+  const heroRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+
+  const bgY = useTransform(
+    scrollYProgress,
+    [0, 1],
+    isMobile ? ["0%", "0%"] : ["0%", "10%"]
+  );
+
+  const contentY = useTransform(
+    scrollYProgress,
+    [0, 1],
+    isMobile ? ["0%", "0%"] : ["0%", "40px"]
+  );
+
+  const contentOpacity = useTransform(
+    scrollYProgress,
+    [0, 0.75],
+    isMobile ? [1, 1] : [1, 0.22]
+  );
+
+  const arrowOpacity = useTransform(scrollYProgress, [0, 0.55], [0.7, 0]);
+  const arrowY = useTransform(scrollYProgress, [0, 1], [0, 14]);
 
   return (
     <section
+      ref={heroRef}
       id="hero"
-      className="relative min-h-[100svh] w-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0d1b2a] via-[#1b263b] to-[#415a77] text-white font-sans"
+      className="relative min-h-[100svh] w-full flex items-center justify-center overflow-hidden bg-[#0b1222] text-white font-sans"
     >
       {/* Fondo */}
-      <div className="absolute inset-0 z-0">
+      <motion.div
+        className="absolute inset-0 z-0 will-change-transform"
+        style={{ y: bgY }}
+      >
         <img
           src={heroImage}
           alt="Fondo hero"
-          className="w-full h-full object-cover opacity-85 will-change-transform"
+          className={`w-full h-full object-cover opacity-80 ${
+            isMobile ? "scale-[1.01]" : "scale-[1.02]"
+          }`}
           loading="eager"
-          fetchpriority="high"
+          fetchPriority="high"
           decoding="async"
         />
-      </div>
+      </motion.div>
 
-      {/* Viñeta + overlay */}
+      {/* Overlay */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.15)_0%,rgba(0,0,0,0.55)_100%)]" />
-        <div className="absolute inset-0 bg-black/65" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.10)_0%,rgba(0,0,0,0.54)_55%,rgba(0,0,0,0.78)_100%)]" />
+        <div className="absolute inset-0 bg-[#08101f]/55" />
       </div>
 
-      {/* Glows */}
+      {/* Glows más suaves */}
       <div className="pointer-events-none absolute inset-0 z-10">
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[10rem] h-[44rem] rounded-full blur-3xl opacity-20 bg-[#98f5e1]" />
-        <div className="absolute -bottom-24 right-1/3 w-[36rem] h-[10rem] rounded-full blur-3xl opacity-10 bg-[#98f5e1]" />
+        <div
+          className={`absolute -top-16 left-1/2 -translate-x-1/2 rounded-full bg-[#98f5e1] blur-3xl ${
+            isMobile
+              ? "h-[18rem] w-[7rem] opacity-[0.05]"
+              : "h-[24rem] w-[9rem] opacity-[0.08]"
+          }`}
+        />
+        <div
+          className={`absolute bottom-0 right-[18%] rounded-full bg-[#98f5e1] blur-3xl ${
+            isMobile
+              ? "h-[6rem] w-[14rem] opacity-[0.05]"
+              : "h-[8rem] w-[20rem] opacity-[0.08]"
+          }`}
+        />
       </div>
 
       {/* Contenido */}
-      <div className="relative z-30 text-center px-4 sm:px-6 max-w-4xl mx-auto flex flex-col items-center">
-        {/* Logo */}
-        <img
-          src={Logo}
-          alt="SINEW"
-          className="w-[clamp(200px,42vw,560px)] h-auto mb-6 drop-shadow-[0_0_18px_rgba(152,245,225,0.35)] select-none"
-          loading="eager"
-          decoding="async"
-          sizes="(min-width:1280px) 560px, (min-width:768px) 42vw, 80vw"
-        />
+      <motion.div
+        style={{ y: contentY, opacity: contentOpacity }}
+        className="relative z-30 mx-auto flex max-w-5xl flex-col items-center px-5 text-center sm:px-6 lg:px-8 will-change-transform"
+      >
+        <RevealText delay={0.05}>
+          <img
+            src={Logo}
+            alt="SINEW"
+            className="mb-7 h-auto w-[clamp(210px,40vw,540px)] select-none drop-shadow-[0_0_18px_rgba(152,245,225,0.22)]"
+            loading="eager"
+            decoding="async"
+            sizes="(min-width:1280px) 540px, (min-width:768px) 40vw, 82vw"
+          />
+        </RevealText>
 
-        {/* Título */}
-        <div className="w-full">
-          <div className="text-center uppercase leading-tight">
-            <h1 className="text-[clamp(22px,7vw,34px)] font-extralight tracking-[0.35em] text-white drop-shadow-md mb-1">
+        <div className="max-w-4xl">
+          <RevealText delay={0.16}>
+            <h1 className="text-[clamp(38px,6.5vw,88px)] font-semibold leading-[0.95] tracking-[-0.04em] text-white">
               Piezas distintas
             </h1>
-            <h2 className="font-alt text-[clamp(16px,4.3vw,26px)] tracking-[0.18em] whitespace-nowrap text-transparent bg-gradient-to-r from-mint to-white bg-clip-text drop-shadow-xl">
-              de un mismo cuerpo
+          </RevealText>
+
+          <RevealText delay={0.24}>
+            <h2 className="mt-2 text-[clamp(20px,3.5vw,34px)] font-medium leading-tight tracking-[-0.03em] text-white/85">
+              Un mismo cuerpo
             </h2>
-          </div>
+          </RevealText>
         </div>
 
-        {/* Texto */}
-        <div className="mt-5 sm:mt-7 max-w-3xl">
-          <p className="text-base sm:text-lg text-white/85 leading-relaxed">
-            SINEW es una red que <span className="text-white">impulsa</span>,{" "}
-            <span className="text-white">conecta</span> y{" "}
-            <span className="text-white">capacita</span> a personas y
-            organizaciones para desarrollar su potencial y servir a la Iglesia
-            con claridad, resiliencia y dirección.
+        <RevealText delay={0.34} className="mt-7 max-w-3xl">
+          <p className="text-[15px] leading-7 text-white/78 sm:text-[17px] sm:leading-8 lg:text-[18px]">
+            Creemos que cada <span className="font-medium text-white">profesión</span>,{" "}
+            <span className="font-medium text-white">talento</span> y{" "}
+            <span className="font-medium text-white">recurso</span> tienen un lugar en el
+            plan de Dios. Por eso capacitamos, conectamos y activamos a
+            profesionales, estudiantes y emprendedores para desarrollar ideas,
+            proyectos y soluciones que fortalezcan al cuerpo de Cristo en
+            tiempos que demandan claridad, resiliencia y dirección.
           </p>
 
-          <p className="mt-3 text-sm sm:text-base text-white/70 leading-relaxed">
-            Si tenés un talento, una vocación o un proyecto por activar, este
-            espacio es para vos. A través de innovación con propósito,
-            colaboramos con el plan de Dios para la restauración de todas las
-            cosas.
-          </p>
+          <div className="mx-auto mt-7 h-px w-28 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+        </RevealText>
 
-          <div className="mx-auto mt-6 h-px w-40 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
-        </div>
-
-        {/* CTA */}
-        <div className="mt-7 sm:mt-9 flex items-center">
+        <RevealText delay={0.46} className="mt-8 flex items-center">
           <a
             href="#ramas"
             aria-label="Explorar áreas"
-            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm sm:text-base text-white/90 backdrop-blur
-                       shadow-[0_0_25px_rgba(152,245,225,0.18)]
-                       transition duration-300 hover:bg-white/10 hover:border-white/25 hover:shadow-[0_0_35px_rgba(152,245,225,0.35)]"
+            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-white/90 backdrop-blur-md transition duration-300 hover:border-white/25 hover:bg-white/10 hover:shadow-[0_0_30px_rgba(152,245,225,0.18)] sm:px-7 sm:text-[15px]"
           >
             Explorar las 3 áreas
             <span
@@ -97,17 +164,18 @@ const Hero = () => {
               →
             </span>
           </a>
-        </div>
+        </RevealText>
+      </motion.div>
 
-        {/* Indicador scroll */}
-        <a
-          href="#ramas"
-          aria-label="Ir a la sección Ramas"
-          className="mt-10 sm:mt-12 text-mint text-2xl opacity-70 hover:opacity-100 transition duration-300"
-        >
-          <span aria-hidden="true">⌄</span>
-        </a>
-      </div>
+      {/* Flecha */}
+      <motion.a
+        href="#ramas"
+        aria-label="Ir a la sección Ramas"
+        className="absolute bottom-8 left-1/2 z-30 -translate-x-1/2 text-2xl text-mint"
+        style={{ opacity: arrowOpacity, y: arrowY }}
+      >
+        <span aria-hidden="true">⌄</span>
+      </motion.a>
     </section>
   );
 };

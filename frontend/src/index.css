@@ -2,9 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fuente alt */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
-
 .font-alt {
   font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
@@ -12,29 +9,35 @@
 
 /* ===== Base & dark defaults ===== */
 html {
-  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  background-color: #0b1222;   /* refuerzo para iOS */
-  color-scheme: dark;          /* UI del navegador en modo oscuro */
+  background-color: #0b1222;
+  color-scheme: dark;
 }
 
 body {
   @apply m-0 min-h-screen font-sans text-white;
-  background-color: #0b1222;   /* ya no blanco */
+  background-color: #0b1222;
   -webkit-text-size-adjust: 100%;
 }
 
-/* Evitar saltos/flicker y desplazamiento lateral */
-html, body { overflow-x: hidden; width: 100%; }
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+}
 
 /* ===== Utilidades de tipografía ===== */
 .text-balance { text-wrap: balance; }
+
 .no-hyphens {
-  hyphens: none; -webkit-hyphens: none; -ms-hyphens: none;
-  word-break: normal; overflow-wrap: normal;
+  hyphens: none;
+  -webkit-hyphens: none;
+  -ms-hyphens: none;
+  word-break: normal;
+  overflow-wrap: normal;
 }
+
 .gpu-smooth {
   transform: translateZ(0);
   will-change: transform, opacity;
@@ -43,30 +46,49 @@ html, body { overflow-x: hidden; width: 100%; }
 }
 
 /* ===== Animaciones ===== */
-@keyframes fade-in-up { 0%{opacity:0;transform:translateY(20px)} 100%{opacity:1;transform:translateY(0)} }
-@keyframes glow { 0%,100%{filter:drop-shadow(0 0 4px #a7ffeb)} 50%{filter:drop-shadow(0 0 10px #a7ffeb)} }
-@keyframes slow-zoom { 0%{transform:scale(1)} 100%{transform:scale(1.05)} }
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glow {
+  0%, 100% { filter: drop-shadow(0 0 4px #a7ffeb); }
+  50% { filter: drop-shadow(0 0 10px #a7ffeb); }
+}
+
+@keyframes slow-zoom {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
 
 .animate-fade-in-up { animation: fade-in-up 1s ease-out forwards; }
-.animate-glow      { animation: glow 2s infinite alternate; }
+.animate-glow { animation: glow 2s infinite alternate; }
 .animate-slow-zoom { animation: slow-zoom 20s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up, .animate-glow, .animate-slow-zoom { animation: none !important; }
+  .animate-fade-in-up,
+  .animate-glow,
+  .animate-slow-zoom {
+    animation: none !important;
+  }
 }
 
 /* ===== iOS/landscape low-height tweak ===== */
-@media (orientation: landscape) && (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 500px) {
   body { background-color: #0d1b2a; }
 }
 
-/* ===== UX polish: selection, placeholders, autofill, scrollbars ===== */
-::selection { background: rgba(152,245,225,0.35); color: #fff; }
+/* ===== UX polish ===== */
+::selection {
+  background: rgba(152, 245, 225, 0.35);
+  color: #fff;
+}
 
 input::placeholder,
-textarea::placeholder { color: rgba(255,255,255,0.45); }
+textarea::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
 
-/* Evitar amarillo de autofill en dark */
 input:-webkit-autofill,
 textarea:-webkit-autofill,
 select:-webkit-autofill {
@@ -75,7 +97,16 @@ select:-webkit-autofill {
   caret-color: #fff;
 }
 
-/* Scrollbar discreta (Chromium/Edge) */
-*::-webkit-scrollbar        { width: 10px; height: 10px; }
-*::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.12); border-radius: 8px; }
-*::-webkit-scrollbar-track  { background: rgba(255,255,255,0.06); }
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.06);
+}

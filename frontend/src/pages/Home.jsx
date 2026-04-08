@@ -1,29 +1,41 @@
 // src/pages/Home.jsx
 import { Link } from "react-router-dom";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import Hero from "../components/Hero";
 import Ramas from "../components/Ramas";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import LibroVenta from "../components/LibroVenta";
 import FondoParticulas from "../components/FondoParticulas";
 
 export default function Home() {
   const videoRef = useRef(null);
+  const videoSectionRef = useRef(null);
+  const [isVideoVisible, setIsVideoVisible] = useState(false);
+
+  const { scrollYProgress } = useScroll({
+    target: videoSectionRef,
+    offset: ["start end", "end start"],
+  });
+
+  const videoY = useTransform(scrollYProgress, [0, 1], [20, -20]);
+  const videoScale = useTransform(scrollYProgress, [0, 0.5, 1], [1.02, 1.04, 1.02]);
 
   useEffect(() => {
-
     const observer = new IntersectionObserver(
-      
       ([entry]) => {
+        setIsVideoVisible(entry.isIntersecting);
+
         if (entry.isIntersecting) {
           videoRef.current?.play().catch(() => {});
         } else {
           videoRef.current?.pause();
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.4 }
     );
+
     if (videoRef.current) observer.observe(videoRef.current);
+
     return () => {
       if (videoRef.current) observer.unobserve(videoRef.current);
     };
@@ -42,14 +54,14 @@ export default function Home() {
         }}
       />
 
-      {/* Mesh (glows) */}
+      {/* Mesh */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[55rem] h-[55rem] rounded-full blur-3xl opacity-15 bg-[#98f5e1]" />
         <div className="absolute -bottom-48 -right-32 w-[45rem] h-[45rem] rounded-full blur-[80px] opacity-10 bg-white" />
         <div className="absolute -bottom-24 left-1/4 w-[32rem] h-[32rem] rounded-full blur-3xl opacity-10 bg-[#98f5e1]" />
       </div>
 
-      {/* Viñeta general */}
+      {/* Viñeta */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-20"
@@ -59,77 +71,140 @@ export default function Home() {
         }}
       />
 
-      {/* Partículas SIEMPRE por detrás del contenido (z-index negativo) */}
+      {/* Partículas globales */}
       <FondoParticulas className="pointer-events-none fixed inset-0 -z-10 opacity-70" />
 
       <Hero />
       <Ramas />
 
-      {/* Video (z-index alto para quedar por encima de cualquier overlay/partículas) */}
-      <section className="relative z-30 w-full flex justify-center px-4 md:px-6 lg:px-8 mt-8 md:mt-10">
-        <div className="w-full max-w-5xl">
-          <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-sm shadow-[0_20px_80px_rgba(0,0,0,0.55)] mx-auto">
-            <div className="pointer-events-none absolute inset-0 rounded-3xl ring-1 ring-white/10" />
-
-            {/* Badge */}
-            <div className="absolute top-4 left-4 z-20">
-              <span className="inline-flex items-center gap-2 rounded-full bg-mint text-black px-4 py-1.5 text-xs md:text-sm font-semibold uppercase tracking-wide shadow-[0_0_14px_rgba(152,245,225,0.35)]">
-                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" className="opacity-90">
-                  <path
-                    fill="currentColor"
-                    d="M12 2a1 1 0 0 1 .894.553l2.382 4.83l5.329.775a1 1 0 0 1 .554 1.706l-3.855 3.758l.91 5.305a1 1 0 0 1-1.451 1.054L12 17.77l-4.763 2.5a1 1 0 0 1-1.451-1.054l.91-5.305L2.84 9.864a1 1 0 0 1 .554-1.706l5.329-.775l2.382-4.83A1 1 0 0 1 12 2Z"
-                  />
-                </svg>
-                Curso gratuito
-              </span>
+      {/* Sección video premium */}
+      <section
+        ref={videoSectionRef}
+        className="relative z-30 w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-16 md:py-20 xl:py-24"
+      >
+        {/* franja oscura elegante */}
+        <div className="mx-auto w-full max-w-[1800px]">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.22 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[#09101d]/80 backdrop-blur-xl shadow-[0_28px_90px_rgba(0,0,0,0.42)]"
+          >
+            {/* ambient glows */}
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute -top-24 left-[18%] h-[18rem] w-[18rem] rounded-full bg-mint/10 blur-3xl" />
+              <div className="absolute bottom-0 right-[7%] h-[16rem] w-[16rem] rounded-full bg-white/5 blur-3xl" />
             </div>
 
-            {/* Contenedor de video con mejora visual */}
-            <div className="relative w-full aspect-video z-30">
-              {/* Capa de realce (nitidez/contraste sutil) */}
-              <div className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-[0.08] bg-white z-10" />
-              {/* Video arriba de partículas */}
-              <video
-                ref={videoRef}
-                className="absolute inset-0 w-full h-full object-cover"
-                src="https://dl.dropboxusercontent.com/scl/fi/k47456d1u7m2lc412icdc/0_Intro_EPEAEM_2025_Video.mp4?rlkey=8ivdn1x9g4pvhbk1bwpy1jlct&st=jwwoimqe&dl=0"
-                controls
-                playsInline
-                muted
-                loop
-                preload="metadata"
-                // Mejora de nitidez (CSS filters, no “sharpen” puro pero ayuda)
-                style={{
-                  filter: "contrast(1.08) saturate(1.06) brightness(1.03)",
-                  willChange: "transform",
-                }}
-              />
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-0">
+              {/* texto */}
+              <div className="xl:col-span-4 border-b xl:border-b-0 xl:border-r border-white/10 p-7 md:p-9 xl:p-10 flex items-center">
+                <div className="max-w-xl">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/72">
+                    <span className="h-2 w-2 rounded-full bg-mint" />
+                    Recurso gratuito
+                  </div>
+
+                  <h2 className="mt-5 text-[clamp(28px,3.1vw,48px)] font-semibold tracking-tight leading-[0.95]">
+                    El Padre, el Árbol
+                    <span className="block bg-gradient-to-r from-[#98f5e1] via-white to-[#98f5e1] bg-clip-text text-transparent">
+                      y el Maestro
+                    </span>
+                  </h2>
+
+                  <p className="mt-5 text-white/68 text-[15px] md:text-[17px] leading-7 md:leading-8">
+                    Mirá la introducción gratuita del curso y conocé su enfoque, su profundidad y el punto de partida de este recorrido.
+                  </p>
+
+                  <div className="mt-7 space-y-3 text-sm md:text-[15px] text-white/74">
+                    <div className="flex items-start gap-3">
+                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mint/85" />
+                      <p>Acceso inicial al contenido gratuito.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mint/85" />
+                      <p>Una primera mirada del curso.</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mint/85" />
+                      <p>Ideal para comenzar el recorrido en Sinew.</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <Link
+                      to="/recursos/comunicacion"
+                      className="inline-flex items-center justify-center rounded-full border border-mint/30 bg-mint/12 px-6 py-3 text-sm md:text-base text-mint hover:bg-mint hover:text-black transition-all duration-300 shadow-[0_0_24px_rgba(152,245,225,0.18)]"
+                    >
+                      Ver recurso
+                    </Link>
+
+                    <a
+                      href="#libro"
+                      className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/5 px-6 py-3 text-sm md:text-base text-white/84 hover:bg-white/10 transition-all duration-300"
+                    >
+                      Seguir explorando
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* video */}
+              <div className="xl:col-span-8 p-4 md:p-5 xl:p-6">
+                <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/30 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+                  <div className="absolute top-4 left-4 z-20">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 backdrop-blur-md px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/78">
+                      <span className="h-2 w-2 rounded-full bg-mint/85" />
+                      Introducción gratuita
+                    </span>
+                  </div>
+
+                  <div className="relative aspect-[16/9] w-full overflow-hidden">
+                    {/* overlays pro */}
+                    <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.07),transparent_34%)]" />
+                    <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-t from-black/25 via-transparent to-black/10" />
+                    <div className="pointer-events-none absolute inset-0 z-10 ring-1 ring-white/8 rounded-[28px]" />
+
+                    <motion.div
+                      style={{ y: videoY, scale: videoScale }}
+                      className="absolute inset-0"
+                    >
+                      <video
+                        ref={videoRef}
+                        className="absolute inset-0 z-0 h-full w-full object-cover"
+                        src="https://dl.dropboxusercontent.com/scl/fi/k47456d1u7m2lc412icdc/0_Intro_EPEAEM_2025_Video.mp4?rlkey=8ivdn1x9g4pvhbk1bwpy1jlct&st=jwwoimqe&dl=0"
+                        controls
+                        playsInline
+                        muted
+                        loop
+                        preload="metadata"
+                        style={{
+                          filter:
+                            "brightness(1.02) contrast(1.09) saturate(1.07) sepia(0.02)",
+                          willChange: "transform",
+                        }}
+                      />
+                    </motion.div>
+
+                    {!isVideoVisible && (
+                      <div className="absolute inset-0 z-20 bg-black/15 pointer-events-none" />
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* CTA */}
-      <div className="relative z-30 flex justify-center mt-6 mb-24">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut" }}
-        >
-          <Link
-            to="/cursos"
-            className="inline-block px-8 py-3 text-white border border-white/15 rounded-full bg-white/5 hover:bg-mint hover:text-black transition-all duration-300 ease-in-out shadow-[0_0_20px_rgba(152,245,225,0.25)] backdrop-blur-sm"
-          >
-            Acceder al curso
-          </Link>
-        </motion.div>
-      </div>
-
       {/* Libro */}
-      <section id="libro" className="relative z-10 overflow-hidden pt-8 pb-0 bg-gradient-to-b from-transparent to-[#0b1222]">
-        <LibroVenta />
-      </section>
+      <section
+  id="libro"
+  className="relative z-10 overflow-hidden pt-8 pb-0 bg-gradient-to-b from-transparent via-[#0b1222] to-[#060b14]"
+>
+  <LibroVenta />
+</section>
     </main>
   );
 }

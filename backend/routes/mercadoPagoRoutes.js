@@ -1,4 +1,3 @@
-// backend/routes/mercadoPagoRoutes.js
 import express from "express";
 import dotenv from "dotenv";
 import crypto from "crypto";
@@ -14,65 +13,100 @@ import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 dotenv.config();
 const router = express.Router();
 
-/* Helpers */
 const norm = (v, def) => String(v || def).trim().replace(/\/$/, "");
 const isHttps = (u) => /^https:\/\//i.test(u);
 const isLocal = (u) => /localhost|127\.0\.0\.1/i.test(u);
 
-/* URLs */
 const FRONTEND_URL = norm(process.env.FRONTEND_URL, "http://localhost:3000");
-const BACKEND_URL  = norm(process.env.BACKEND_URL,  "http://localhost:5001");
+const BACKEND_URL = norm(process.env.BACKEND_URL, "http://localhost:5001");
 
-/* MP Client */
 const mpClient = process.env.MP_ACCESS_TOKEN
   ? new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN })
   : null;
 
-/* ───────── Helpers de curso ───────── */
-const pickCourseSlugFromPayment = (p) => {
-  if (p?.metadata?.courseSlug) return p.metadata.courseSlug;
-  const itemId = p?.additional_info?.items?.[0]?.id;
-  if (itemId && /^course:/i.test(itemId)) return itemId.split(":")[1];
-  return null;
-};
-const pickCourseSlugFromPreference = (pref) => {
-  return pref?.metadata?.courseSlug || pref?.metadata?.slug || null;
+const normalizeResourceType = (value) => {
+  if (value === "masterclass") return "masterclass";
+  if (value === "course") return "course";
+  return "book";
 };
 
-/* ───────── Fulfillment ───────── */
-async function fulfillCourseAccess({ userId, email, name, courseSlug, courseTitle }) {
-  if (!courseSlug) return null;
+const pickResourceFromPayment = (payment) => {
+  const slug = payment?.metadata?.courseSlug || payment?.metadata?.slug || null;
+  const type = normalizeResourceType(payment?.metadata?.type || payment?.metadata?.kind);
+
+  if (slug) {
+    return { slug, type };
+  }
+
+  const itemId = payment?.additional_info?.items?.[0]?.id;
+  if (itemId && /^(course|masterclass):/i.test(itemId)) {
+    const [kind, value] = itemId.split(":");
+    return {
+      slug: value || null,
+      type: normalizeResourceType(kind.toLowerCase()),
+    };
+  }
+
+  return { slug: null, type: "book" };
+};
+
+const pickResourceFromPreference = (pref) => {
+  return {
+    slug: pref?.metadata?.courseSlug || pref?.metadata?.slug || null,
+    type: normalizeResourceType(pref?.metadata?.type || pref?.metadata?.kind),
+  };
+};
+
+async function fulfillResourceAccess({
+  userId,
+  email,
+  name,
+  courseSlug,
+  courseTitle,
+  provider = "mercadopago",
+}) {
+  if (!courseSlug || !userId) return null;
 
   await CourseAccess.updateOne(
     { userId, courseSlug },
-    { $set: { userId, courseSlug, provider: "mercadopago", grantedAt: new Date() } },
+    {
+      $set: {
+        userId,
+        courseSlug,
+        provider,
+        grantedBy: provider,
+        grantedAt: new Date(),
+      },
+    },
     { upsert: true }
   );
 
   const courseUrl = `${FRONTEND_URL}/cursos/${courseSlug}?paid=1`;
+
   if (email) {
     try {
-      console.log("[diag] MP: intentando enviar mail curso…", { to: email, courseSlug });
-      const r = await sendCourseAccessEmail({
+      await sendCourseAccessEmail({
         toEmail: email,
         buyerName: (name || "").trim() || "¡Hola!",
-        courseTitle: courseTitle || "Curso SINEW",
+        courseTitle: courseTitle || "Recurso SINEW",
         courseUrl,
       });
-      console.log("[diag] MP: resultado mailer curso:", r);
     } catch (e) {
-      console.error("[MP] email curso error:", e?.message || e);
+      console.error("[MP] email recurso error:", e?.message || e);
     }
   }
+
   return { courseUrl };
 }
 
 async function fulfillBookDownload({ userId, email, name }) {
+  if (!userId) return null;
+
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
   await DownloadToken.create({ userId, token, expiresAt, used: false });
 
-  // link para el email (gracias + autodownload)
   const thankYouUrl = `${FRONTEND_URL}/gracias?status=success&download=${encodeURIComponent(token)}`;
 
   if (email) {
@@ -80,33 +114,30 @@ async function fulfillBookDownload({ userId, email, name }) {
       await sendPurchaseEmail({
         toEmail: email,
         buyerName: (name || "").trim() || "¡Hola!",
-        downloadLink: thankYouUrl,          // <— este se usa SOLO en el mail
+        downloadLink: thankYouUrl,
       });
     } catch (e) {
       console.error("[MP] email libro error:", e?.message || e);
     }
   }
 
-  // Para el backend devolvemos tanto el link 'bonito'
-  // como el endpoint crudo de descarga
   return {
     downloadLink: thankYouUrl,
     rawDownload: `/api/download/${token}`,
   };
 }
 
-/* ───────── Ping ───────── */
 router.get("/ping", (_req, res) => {
   res.json({ ok: true, mp: !!mpClient, FRONTEND_URL, BACKEND_URL });
 });
 
-// Diagnóstico: ¿qué cuenta soy con el token actual?
 router.get("/whoami", async (_req, res) => {
   try {
     const r = await fetch("https://api.mercadopago.com/users/me", {
       headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
     });
     const j = await r.json();
+
     res.json({
       ok: true,
       seller_id: j?.id,
@@ -119,26 +150,36 @@ router.get("/whoami", async (_req, res) => {
   }
 });
 
-
-/* ───────── Crear preferencia ───────── */
 router.post("/create-preference", async (req, res) => {
   try {
-    if (!mpClient) return res.status(500).json({ error: "Mercado Pago no configurado" });
+    if (!mpClient) {
+      return res.status(500).json({ error: "Mercado Pago no configurado" });
+    }
 
-    const { price=12900, currency="ARS", title="Producto SINEW", buyer={}, metadata={} } = req.body || {};
-    const unitPrice  = Number(price);
+    const {
+      price = 12900,
+      currency = "ARS",
+      title = "Producto SINEW",
+      buyer = {},
+      metadata = {},
+    } = req.body || {};
+
+    const unitPrice = Number(price);
     const currencyId = String(currency).toUpperCase();
-    const buyerName  = buyer?.name || "";
+    const buyerName = buyer?.name || "";
     const buyerEmail = buyer?.email || "";
 
-    const courseSlug = metadata?.courseSlug
-      || (metadata?.type === "course" ? metadata?.slug : null)
-      || null;
+    const resourceType = normalizeResourceType(metadata?.type || metadata?.kind);
+    const resourceSlug = metadata?.courseSlug || metadata?.slug || null;
 
-    const itemId     = courseSlug ? `course:${courseSlug}` : "libro-001";
-    const external_reference = courseSlug ? `course:${courseSlug}` : "book:libro-001";
+    const itemId =
+      resourceType !== "book" && resourceSlug
+        ? `${resourceType}:${resourceSlug}`
+        : "book:libro-001";
 
+    const externalReference = itemId;
     const backendIsPublic = isHttps(BACKEND_URL) && !isLocal(BACKEND_URL);
+
     const back_urls = backendIsPublic
       ? {
           success: `${BACKEND_URL}/api/mp/return`,
@@ -152,36 +193,48 @@ router.post("/create-preference", async (req, res) => {
         };
 
     const preference = new Preference(mpClient);
+
     const body = {
-      items: [{
-        id: itemId,
-        title,
-        quantity: 1,
-        currency_id: currencyId,
-        unit_price: unitPrice,
-        description: title
-      }],
+      items: [
+        {
+          id: itemId,
+          title,
+          quantity: 1,
+          currency_id: currencyId,
+          unit_price: unitPrice,
+          description: title,
+        },
+      ],
       payer: {
         name: buyerName,
         email: buyerEmail || `test_${Date.now()}@testuser.com`,
       },
       back_urls,
-      external_reference,
-      metadata: { ...metadata, courseSlug, itemId, title },
-      // binary_mode: true,  // opcional para forzar sólo aprobado/rechazado
-      ...(backendIsPublic ? {
-        notification_url: `${BACKEND_URL}/api/mp/webhook`,
-        auto_return: "approved",
-      } : {}),
+      external_reference: externalReference,
+      metadata: {
+        ...metadata,
+        type: resourceType,
+        kind: resourceType,
+        courseSlug: resourceSlug,
+        slug: resourceSlug,
+        itemId,
+        title,
+      },
+      ...(backendIsPublic
+        ? {
+            notification_url: `${BACKEND_URL}/api/mp/webhook`,
+            auto_return: "approved",
+          }
+        : {}),
     };
 
     const result = await preference.create({ body });
+    const responseBody = result?.body || result;
 
-    const b = result?.body || result;
     return res.status(201).json({
-      id: b.id,
-      init_point: b.init_point,
-      sandbox_init_point: b.sandbox_init_point,
+      id: responseBody.id,
+      init_point: responseBody.init_point,
+      sandbox_init_point: responseBody.sandbox_init_point,
     });
   } catch (err) {
     console.error("[MP] create-preference error:", err?.message || err);
@@ -192,7 +245,6 @@ router.post("/create-preference", async (req, res) => {
   }
 });
 
-/* ───────── Return (redirect del checkout) ───────── */
 router.get("/return", async (req, res) => {
   try {
     if (!mpClient) return res.status(500).send("MP no configurado");
@@ -202,45 +254,49 @@ router.get("/return", async (req, res) => {
       return res.redirect(`${FRONTEND_URL}/gracias?status=error&error=missing_payment_id`);
     }
 
-    const payment = new Payment(mpClient);
-    const data = await payment.get({ id: String(payment_id) });
-    if ((data.status || "").toLowerCase() !== "approved") {
+    const paymentSdk = new Payment(mpClient);
+    const paymentData = await paymentSdk.get({ id: String(payment_id) });
+
+    if ((paymentData.status || "").toLowerCase() !== "approved") {
       return res.redirect(`${FRONTEND_URL}/gracias?status=not_approved`);
     }
 
-    // Detectar curso de forma robusta
-    let courseSlug = pickCourseSlugFromPayment(data);
-    if (!courseSlug && preference_id) {
+    let resource = pickResourceFromPayment(paymentData);
+
+    if (!resource.slug && preference_id) {
       try {
         const pref = await new Preference(mpClient).get({ id: String(preference_id) });
-        courseSlug = pickCourseSlugFromPreference(pref);
+        resource = pickResourceFromPreference(pref);
       } catch (e) {
         console.warn("[MP return] no se pudo leer preference:", e?.message || e);
       }
     }
 
-    // Email/Nombre (tolerante a sandbox)
+    const courseSlug = resource.slug;
+    const resourceType = resource.type;
+
     let email =
-      data.payer?.email ||
-      data.additional_info?.payer?.email ||
-      data.external_reference || "";
-    if (!email) email = `mp+${data.id}@sinew.test`;
+      paymentData.payer?.email ||
+      paymentData.additional_info?.payer?.email ||
+      paymentData.external_reference ||
+      "";
+
+    if (!email) email = `mp+${paymentData.id}@sinew.test`;
 
     const name =
-      data.payer?.first_name ||
-      data.payer?.name ||
-      data.additional_info?.payer?.first_name ||
+      paymentData.payer?.first_name ||
+      paymentData.payer?.name ||
+      paymentData.additional_info?.payer?.first_name ||
       "Cliente MP";
 
-    const amountValue    = data.transaction_amount;
-    const amountCurrency = data.currency_id || "ARS";
-    const orderId        = data.id;
-    const courseTitle    =
-      data.description ||
-      data.metadata?.title ||
-      (courseSlug ? "Curso SINEW" : "Libro SINEW");
+    const amountValue = paymentData.transaction_amount;
+    const amountCurrency = paymentData.currency_id || "ARS";
+    const orderId = paymentData.id;
+    const resourceTitle =
+      paymentData.description ||
+      paymentData.metadata?.title ||
+      (courseSlug ? "Recurso SINEW" : "Libro SINEW");
 
-    // upsert user
     let userId;
     try {
       let user = await User.findOne({ email });
@@ -256,18 +312,20 @@ router.get("/return", async (req, res) => {
       console.error("[MP return] upsert user error:", e?.message || e);
     }
 
-    // Crear compra (idempotente)
     try {
       await Purchase.create({
         userId,
-        bookId: courseSlug ? undefined : "libro-001",
+        bookId: resourceType === "book" ? "libro-001" : undefined,
         price: Number(amountValue),
         currency: amountCurrency,
         status: "paid",
         provider: "mercadopago",
         orderId: String(orderId),
         purchaseDate: new Date(),
-        metadata: { courseSlug },
+        metadata: {
+          type: resourceType,
+          courseSlug,
+        },
       });
     } catch (e) {
       if (e?.code !== 11000) {
@@ -276,48 +334,43 @@ router.get("/return", async (req, res) => {
       }
     }
 
-    // 🔹 Flujo curso vs libro
     if (courseSlug) {
-      await fulfillCourseAccess({ userId, email, name, courseSlug, courseTitle });
-      return res.redirect(
-        `${FRONTEND_URL}/cursos/${courseSlug}?paid=1&success=1`
-      );
-    } else {
-      // ⚠️ CORREGIDO:
-      // usamos rawDownload ("/api/download/<token>")
-      // y se lo pasamos como ?download= al front,
-      // para evitar anidar /gracias dentro de /gracias.
-      const { rawDownload } = await fulfillBookDownload({ userId, email, name });
-      return res.redirect(
-        `${FRONTEND_URL}/gracias?status=success&download=${encodeURIComponent(rawDownload)}`
-      );
+      await fulfillResourceAccess({
+        userId,
+        email,
+        name,
+        courseSlug,
+        courseTitle: resourceTitle,
+        provider: "mercadopago",
+      });
+
+      return res.redirect(`${FRONTEND_URL}/cursos/${courseSlug}?paid=1&success=1`);
     }
+
+    const downloadResult = await fulfillBookDownload({ userId, email, name });
+
+    return res.redirect(
+      `${FRONTEND_URL}/gracias?status=success&download=${encodeURIComponent(
+        downloadResult?.rawDownload || ""
+      )}`
+    );
   } catch (err) {
     console.error("[MP] return error:", err?.message || err);
     return res.redirect(`${FRONTEND_URL}/gracias?status=error&error=server_error`);
   }
 });
 
-/* ───────── Webhook (GET/POST, payment y merchant_order) ───────── */
 router.all("/webhook", async (req, res) => {
   try {
     if (!mpClient) {
-      return res
-        .status(500)
-        .json({ received: true, error: "MP_NOT_CONFIGURED" });
+      return res.status(500).json({ received: true, error: "MP_NOT_CONFIGURED" });
     }
 
-    const topic = (
-      req.query?.topic || req.body?.topic || req.body?.type || ""
-    )
+    const topic = (req.query?.topic || req.body?.topic || req.body?.type || "")
       .toString()
       .toLowerCase();
-    const id = (
-      req.query?.id ||
-      req.body?.id ||
-      req.body?.data?.id ||
-      ""
-    )
+
+    const id = (req.query?.id || req.body?.id || req.body?.data?.id || "")
       .toString();
 
     if (!topic || !id) {
@@ -330,26 +383,29 @@ router.all("/webhook", async (req, res) => {
 
     const paymentSdk = new Payment(mpClient);
 
-    const processApprovedPayment = async (pay) => {
-      if (!pay || (pay.status || "").toLowerCase() !== "approved") return false;
+    const processApprovedPayment = async (paymentData) => {
+      if (!paymentData || (paymentData.status || "").toLowerCase() !== "approved") {
+        return false;
+      }
 
-      // courseSlug robusto
-      let courseSlug = pickCourseSlugFromPayment(pay);
+      const resource = pickResourceFromPayment(paymentData);
+      const courseSlug = resource.slug;
+      const resourceType = resource.type;
 
-      // Email/Nombre tolerantes a sandbox
       let email =
-        pay.payer?.email ||
-        pay.additional_info?.payer?.email ||
-        pay.external_reference || "";
-      if (!email) email = `mp+${pay.id}@sinew.test`;
+        paymentData.payer?.email ||
+        paymentData.additional_info?.payer?.email ||
+        paymentData.external_reference ||
+        "";
+
+      if (!email) email = `mp+${paymentData.id}@sinew.test`;
 
       const name =
-        pay.payer?.first_name ||
-        pay.payer?.name ||
-        pay.additional_info?.payer?.first_name ||
+        paymentData.payer?.first_name ||
+        paymentData.payer?.name ||
+        paymentData.additional_info?.payer?.first_name ||
         "Cliente MP";
 
-      // upsert user
       let userId;
       try {
         let user = await User.findOne({ email });
@@ -365,35 +421,45 @@ router.all("/webhook", async (req, res) => {
         console.error("[MP webhook] upsert user error:", e?.message || e);
       }
 
-      // Insert purchase (idempotente)
       try {
         await Purchase.create({
           userId,
-          bookId: courseSlug ? undefined : "libro-001",
-          price: Number(pay.transaction_amount),
-          currency: pay.currency_id || "ARS",
+          bookId: resourceType === "book" ? "libro-001" : undefined,
+          price: Number(paymentData.transaction_amount),
+          currency: paymentData.currency_id || "ARS",
           status: "paid",
           provider: "mercadopago",
-          orderId: String(pay.id),
+          orderId: String(paymentData.id),
           purchaseDate: new Date(),
-          metadata: { courseSlug },
+          metadata: {
+            type: resourceType,
+            courseSlug,
+          },
         });
-        console.log("[MP webhook] purchase insertada", pay.id);
+        console.log("[MP webhook] purchase insertada", paymentData.id);
       } catch (e) {
         if (e?.code === 11000) {
-          console.log("[MP webhook] purchase ya existía", pay.id);
-          // seguir con fulfillment igual
+          console.log("[MP webhook] purchase ya existía", paymentData.id);
         } else {
           console.error("[MP webhook] error insert purchase:", e?.message || e);
           return res.json({ received: true, ok: false });
         }
       }
 
-      // Fulfillment
-      const courseTitle =
-        pay.description || (courseSlug ? "Curso SINEW" : "Libro SINEW");
+      const resourceTitle =
+        paymentData.description ||
+        paymentData.metadata?.title ||
+        (courseSlug ? "Recurso SINEW" : "Libro SINEW");
+
       if (courseSlug) {
-        await fulfillCourseAccess({ userId, email, name, courseSlug, courseTitle });
+        await fulfillResourceAccess({
+          userId,
+          email,
+          name,
+          courseSlug,
+          courseTitle: resourceTitle,
+          provider: "mercadopago",
+        });
       } else {
         await fulfillBookDownload({ userId, email, name });
       }
@@ -408,31 +474,26 @@ router.all("/webhook", async (req, res) => {
     }
 
     if (topic === "merchant_order") {
-      const r = await fetch(
-        `https://api.mercadopago.com/merchant_orders/${id}`,
-        {
-          headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
-        }
-      );
-      if (!r.ok) {
-        console.error(
-          "[MP webhook] merchant_orders fetch error",
-          r.status,
-          r.statusText
-        );
+      const response = await fetch(`https://api.mercadopago.com/merchant_orders/${id}`, {
+        headers: { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
+      });
+
+      if (!response.ok) {
+        console.error("[MP webhook] merchant_orders fetch error", response.status, response.statusText);
         return res.json({ received: true, ok: false, topic: "merchant_order" });
       }
-      const mo = await r.json();
 
-      if (Array.isArray(mo.payments) && mo.payments.length) {
-        for (const p of mo.payments) {
+      const merchantOrder = await response.json();
+
+      if (Array.isArray(merchantOrder.payments) && merchantOrder.payments.length) {
+        for (const paymentItem of merchantOrder.payments) {
           try {
-            const full = await paymentSdk.get({ id: String(p.id) });
-            await processApprovedPayment(full);
+            const fullPayment = await paymentSdk.get({ id: String(paymentItem.id) });
+            await processApprovedPayment(fullPayment);
           } catch (e) {
             console.error(
               "[MP webhook] error trayendo payment",
-              p?.id,
+              paymentItem?.id,
               e?.message || e
             );
           }
@@ -440,6 +501,7 @@ router.all("/webhook", async (req, res) => {
       } else {
         console.log("[MP webhook] merchant_order sin payments aún", id);
       }
+
       return res.json({ received: true, ok: true, topic: "merchant_order" });
     }
 

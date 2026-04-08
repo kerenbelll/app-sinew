@@ -4,29 +4,21 @@ import { Link } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import FondoParticulas from "../components/FondoParticulas";
 
-// Imágenes por curso (local)
-import imgComunicacion from "../assets/cursos/arbol.jpg";
-import imgPro from "../assets/cursos/tecnologia.jpg";
-import imgMasterclass from "../assets/cursos/renovacion.jpg";
-
 /* =========================================================
    Utils
    ========================================================= */
-const IMAGE_BY_SLUG = {
-  comunicacion: imgComunicacion,
-  "pro-avanzado": imgPro,
-  masterclass: imgMasterclass,
-};
-
 const readToken = () =>
-  (typeof window !== "undefined" && (localStorage.getItem("auth_token") || localStorage.getItem("token"))) ||
+  (typeof window !== "undefined" &&
+    (localStorage.getItem("auth_token") || localStorage.getItem("token"))) ||
   "";
 
 /** Card con tilt suave 3D */
 function Card3D({ children, className = "" }) {
   const ref = useRef(null);
   const isTouch =
-    typeof window !== "undefined" && window.matchMedia && matchMedia("(hover: none)").matches;
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(hover: none)").matches;
 
   const handleMove = (e) => {
     if (isTouch) return;
@@ -43,8 +35,8 @@ function Card3D({ children, className = "" }) {
     if (isTouch) return;
     const el = ref.current;
     if (!el) return;
-    el.style.setProperty("--rx", `0deg`);
-    el.style.setProperty("--ry", `0deg`);
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
   };
 
   return (
@@ -53,7 +45,7 @@ function Card3D({ children, className = "" }) {
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
       className={[
-        "relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur",
+        "group relative rounded-2xl border border-white/10 bg-white/5 backdrop-blur",
         "p-4 md:p-5 shadow-[0_0_34px_rgba(152,245,225,0.08)]",
         "transition-transform duration-150 hover:scale-[1.01]",
         className,
@@ -77,24 +69,25 @@ function Card3D({ children, className = "" }) {
 export default function Perfil() {
   const { user } = useUser();
 
-  // API base (coherente con el resto del front)
-  const API = (import.meta.env.VITE_API_BASE || "http://localhost:5001").replace(/\/$/, "");
+  const API = (import.meta.env.VITE_API_BASE || "http://localhost:5001").replace(
+    /\/$/,
+    ""
+  );
   const token = useMemo(readToken, []);
-  const headers = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {}), [token]);
+  const headers = useMemo(
+    () => (token ? { Authorization: `Bearer ${token}` } : {}),
+    [token]
+  );
 
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
 
-  // Absolutiza thumbnails del backend, pero si hay imagen local por slug, prioriza la local
-  const resolveThumb = (slug, backendThumb) => {
-    if (IMAGE_BY_SLUG[slug]) return IMAGE_BY_SLUG[slug];
+  // Las imágenes de cursos se sirven desde frontend/public,
+  // por eso el thumbnail debe usarse tal como viene desde Mongo:
+  // "/assets/cursos/archivo.png"
+  const resolveThumb = (backendThumb) => {
     if (!backendThumb) return "";
-    try {
-      const u = new URL(backendThumb, API);
-      return u.href;
-    } catch {
-      return backendThumb;
-    }
+    return backendThumb;
   };
 
   useEffect(() => {
@@ -107,10 +100,10 @@ export default function Perfil() {
           return;
         }
 
-        // Asegura headers cuando hydrate tarde
         if (!token) {
           await new Promise((r) => setTimeout(r, 120));
         }
+
         if (!readToken()) {
           setCourses([]);
           return;
@@ -132,7 +125,7 @@ export default function Perfil() {
               }
         );
 
-        // 2) Catálogo completo (para completar info y detectar free)
+        // 2) Catálogo completo
         const catalog = await fetch(`${API}/api/courses`)
           .then((r) => r.json())
           .catch(() => []);
@@ -141,18 +134,23 @@ export default function Perfil() {
           (Array.isArray(catalog) ? catalog : []).map((c) => [c.slug, c])
         );
 
-        // 3) Verificar acceso real (200 en /lessons) — free o comprado
+        // 3) Verificar acceso real (free o comprado)
         const checks = await Promise.all(
           [...bySlugCatalog.values()].map(async (c) => {
             try {
-              const r = await fetch(`${API}/api/courses/${c.slug}/lessons`, { headers });
+              const r = await fetch(`${API}/api/courses/${c.slug}/lessons`, {
+                headers,
+              });
               return { slug: c.slug, status: r.status };
             } catch {
               return { slug: c.slug, status: 0 };
             }
           })
         );
-        const access200 = new Set(checks.filter((x) => x.status === 200).map((x) => x.slug));
+
+        const access200 = new Set(
+          checks.filter((x) => x.status === 200).map((x) => x.slug)
+        );
 
         // 4) Unificar: owned + lo que devuelva 200
         const mapBySlug = new Map();
@@ -162,7 +160,7 @@ export default function Perfil() {
           mapBySlug.set(o.slug, {
             slug: o.slug,
             title: o.title || cat.title || o.slug,
-            thumbnail: resolveThumb(o.slug, o.thumbnail || cat.thumbnail || ""),
+            thumbnail: resolveThumb(o.thumbnail || cat.thumbnail || ""),
             level: (cat.level || "").toLowerCase(),
           });
         }
@@ -173,7 +171,7 @@ export default function Perfil() {
             mapBySlug.set(slug, {
               slug,
               title: cat.title || slug,
-              thumbnail: resolveThumb(slug, cat.thumbnail || ""),
+              thumbnail: resolveThumb(cat.thumbnail || ""),
               level: (cat.level || "").toLowerCase(),
             });
           } else {
@@ -182,7 +180,7 @@ export default function Perfil() {
             mapBySlug.set(slug, {
               slug,
               title: prev.title || cat.title || slug,
-              thumbnail: prev.thumbnail || resolveThumb(slug, cat.thumbnail || ""),
+              thumbnail: prev.thumbnail || resolveThumb(cat.thumbnail || ""),
               level: prev.level || (cat.level || "").toLowerCase(),
             });
           }
@@ -191,7 +189,7 @@ export default function Perfil() {
         const merged = Array.from(mapBySlug.values());
         if (!mounted) return;
 
-        // Orden simple: owned primero, luego free con acceso
+        // Owned primero, luego free con acceso
         const ownedSlugs = new Set(owned.map((x) => x.slug));
         const sorted = merged.sort((a, b) => {
           const ao = ownedSlugs.has(a.slug) ? 0 : 1;
@@ -207,12 +205,12 @@ export default function Perfil() {
     }
 
     load();
+
     return () => {
       mounted = false;
     };
   }, [API, headers, token, user]);
 
-  // Si por alguna razón llega sin user (ProtectedRoute normalmente lo evita)
   if (!user) {
     return (
       <section className="min-h-[60vh] grid place-items-center bg-black text-white">
@@ -256,8 +254,8 @@ export default function Perfil() {
           </h1>
 
           <p className="mt-3 text-white/70 max-w-2xl mx-auto">
-            Estos son tus <strong className="text-white">cursos con acceso</strong>. Elegí por dónde
-            seguir y retomá cuando quieras.
+            Estos son tus <strong className="text-white">cursos con acceso</strong>.
+            Elegí por dónde seguir y retomá cuando quieras.
           </p>
         </div>
 
@@ -306,7 +304,7 @@ export default function Perfil() {
                         }}
                       />
                     ) : (
-                      <div className="absolute inset-0 grid place-items-center bg黑/30">
+                      <div className="absolute inset-0 grid place-items-center bg-black/30">
                         <span className="text-white/50 text-xs">Sin imagen</span>
                       </div>
                     )}
@@ -336,7 +334,6 @@ export default function Perfil() {
 
                 {/* Body */}
                 <div className="mt-4 flex flex-col gap-3">
-                  {/* Eliminado: el slug debajo de la tarjeta */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/80">

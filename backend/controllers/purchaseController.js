@@ -1,43 +1,41 @@
-// backend/controllers/purchaseController.js
-import crypto from 'crypto';
-import dotenv from 'dotenv';
-import nodemailer from 'nodemailer';
-import paypal from '@paypal/checkout-server-sdk';
+import crypto from "crypto";
+import dotenv from "dotenv";
+import nodemailer from "nodemailer";
+import paypal from "@paypal/checkout-server-sdk";
 
-import DownloadToken from '../models/DownloadToken.js';
-import Purchase from '../models/Purchase.js';
-import User from '../models/User.js';
-import CourseAccess from '../models/CourseAccess.js';
-import { sendPurchaseEmail, sendCourseAccessEmail } from '../utils/mailer.js';
+import DownloadToken from "../models/DownloadToken.js";
+import Purchase from "../models/Purchase.js";
+import User from "../models/User.js";
+import CourseAccess from "../models/CourseAccess.js";
+import { sendPurchaseEmail, sendCourseAccessEmail } from "../utils/mailer.js";
 
 dotenv.config();
 
 /* =========================
    Config
    ========================= */
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
 const hasPaypalCreds = !!process.env.PAYPAL_CLIENT_ID && !!process.env.PAYPAL_CLIENT_SECRET;
-const hasEmailCreds  = !!process.env.SMTP_USER && !!process.env.SMTP_PASS;
+const hasEmailCreds = !!process.env.SMTP_USER && !!process.env.SMTP_PASS;
 
 console.log(
-  '[BOOT][purchaseController] PAYPAL:',
-  hasPaypalCreds ? 'OK' : 'MISSING',
-  '| SMTP:',
-  hasEmailCreds ? 'OK' : 'MISSING'
+  "[BOOT][purchaseController] PAYPAL:",
+  hasPaypalCreds ? "OK" : "MISSING",
+  "| SMTP:",
+  hasEmailCreds ? "OK" : "MISSING"
 );
 
-const PAYPAL_ENV = String(process.env.PAYPAL_ENV || 'sandbox').toLowerCase();
-const clientId = process.env.PAYPAL_CLIENT_ID || 'MISSING';
-const clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'MISSING';
+const PAYPAL_ENV = String(process.env.PAYPAL_ENV || "sandbox").toLowerCase();
+const clientId = process.env.PAYPAL_CLIENT_ID || "MISSING";
+const clientSecret = process.env.PAYPAL_CLIENT_SECRET || "MISSING";
 
 const environment =
-  PAYPAL_ENV === 'live'
+  PAYPAL_ENV === "live"
     ? new paypal.core.LiveEnvironment(clientId, clientSecret)
     : new paypal.core.SandboxEnvironment(clientId, clientSecret);
 
 const paypalClient = new paypal.core.PayPalHttpClient(environment);
 
-// Nodemailer (fallback/compatibilidad con otros mails simples)
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),
@@ -48,19 +46,51 @@ const transporter = nodemailer.createTransport({
 });
 
 /* =========================
-   Helpers fulfillment
+   Helpers
    ========================= */
-async function fulfillCourseAccess({ userId, email, name, courseSlug, courseTitle }) {
-  if (!courseSlug) return null;
+function normalizeResourceType(value) {
+  if (value === "masterclass") return "masterclass";
+  if (value === "course") return "course";
+  return "book";
+}
+
+function parseCustomId(customId = "") {
+  if (!customId || typeof customId !== "string") {
+    return { type: "book", slug: null };
+  }
+
+  const match = customId.match(/^(course|masterclass):(.+)$/i);
+  if (!match) {
+    return { type: "book", slug: null };
+  }
+
+  return {
+    type: normalizeResourceType(match[1].toLowerCase()),
+    slug: match[2] || null,
+  };
+}
+
+/* =========================
+   Fulfillment
+   ========================= */
+async function fulfillResourceAccess({
+  userId,
+  email,
+  name,
+  courseSlug,
+  courseTitle,
+  provider = "paypal",
+}) {
+  if (!courseSlug || !userId) return null;
 
   await CourseAccess.updateOne(
     { userId, courseSlug },
     {
-      $setOnInsert: {
+      $set: {
         userId,
         courseSlug,
-        provider: 'paypal',
-        grantedBy: 'paypal',
+        provider,
+        grantedBy: provider,
         grantedAt: new Date(),
       },
     },
@@ -71,15 +101,15 @@ async function fulfillCourseAccess({ userId, email, name, courseSlug, courseTitl
 
   if (email) {
     try {
-      const r = await sendCourseAccessEmail({
+      const result = await sendCourseAccessEmail({
         toEmail: email,
-        buyerName: (name || 'Alumno').trim(),
-        courseTitle: courseTitle || 'Curso SINEW',
+        buyerName: (name || "Alumno").trim(),
+        courseTitle: courseTitle || "Recurso SINEW",
         courseUrl,
       });
-      console.log('[Email] acceso curso →', r);
+      console.log("[Email] acceso recurso →", result);
     } catch (e) {
-      console.error('[Email] acceso curso error:', e?.message || e);
+      console.error("[Email] acceso recurso error:", e?.message || e);
     }
   }
 
@@ -87,42 +117,40 @@ async function fulfillCourseAccess({ userId, email, name, courseSlug, courseTitl
 }
 
 async function fulfillBookDownload({ userId, email, name, invoiceBuffer, invoiceName }) {
-  // token 24h
-  const token = crypto.randomBytes(32).toString('hex');
+  if (!userId) return null;
+
+  const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   await DownloadToken.create({ userId, token, expiresAt, used: false });
 
-  // Redirigimos al frontend para UX + autodownload
   const redirectTo = `${FRONTEND_URL}/gracias?status=success&download=${encodeURIComponent(token)}`;
 
-  // Enviar mail “compra libro”
   if (email) {
     try {
-      const r = await sendPurchaseEmail({
+      const result = await sendPurchaseEmail({
         toEmail: email,
-        buyerName: (name || 'Buyer').trim(),
+        buyerName: (name || "Buyer").trim(),
         downloadLink: redirectTo,
         invoiceBuffer,
         invoiceName,
       });
-      console.log('[Email] libro →', r);
+      console.log("[Email] libro →", result);
     } catch (e) {
-      console.error('[Email] libro error:', e?.message || e);
+      console.error("[Email] libro error:", e?.message || e);
 
-      // Fallback muy simple con nodemailer si falla el mailer principal
       if (hasEmailCreds) {
         try {
           await transporter.sendMail({
             from: `"SINEW" <${process.env.SMTP_USER}>`,
             to: email,
-            subject: 'Tu enlace de descarga del libro',
-            html: `<p>Hola ${name || ''},</p>
+            subject: "Tu enlace de descarga del libro",
+            html: `<p>Hola ${name || ""},</p>
                    <p>Gracias por tu compra. Descarga tu libro (24h):</p>
                    <a href="${redirectTo}">${redirectTo}</a>`,
           });
         } catch (e2) {
-          console.error('[Email][fallback] libro error:', e2?.message || e2);
+          console.error("[Email][fallback] libro error:", e2?.message || e2);
         }
       }
     }
@@ -135,35 +163,34 @@ async function fulfillBookDownload({ userId, email, name, invoiceBuffer, invoice
    CREATE ORDER
    ========================= */
 /**
- * Crea orden de PayPal y devuelve approveUrl + links.
- * Espera (opcional) body:
- *  - items: [{ type, sku, name, quantity, unit_amount, currency }]
- *  - meta: { courseSlug, buyerEmail }
+ * Crea orden de PayPal.
+ * Espera body:
+ * - items: [{ type, sku, name, quantity, unit_amount, currency }]
+ * - meta: { courseSlug, buyerEmail, type }
  *
- * También admite payload "simple":
- *  - price, currency, title, metadata, buyer
+ * Compatibilidad:
+ * - price, currency, title, metadata, buyer
  */
 export const createOrder = async (req, res) => {
   try {
     if (!hasPaypalCreds) {
-      return res.status(500).json({ error: 'PayPal no configurado' });
+      return res.status(500).json({ error: "PayPal no configurado" });
     }
 
-    const items = Array.isArray(req.body?.items) ? req.body.items : [];
-    const meta  = req.body?.meta || {};
+    const items = Array.isArray(req.body?.items) ? [...req.body.items] : [];
+    const meta = req.body?.meta || {};
 
-    // Compatibilidad con payload simple (price, currency, title, metadata, buyer)
     if (!items.length && req.body?.price) {
       const amountValue = Number(req.body.price ?? 35);
-      const currency    = String(req.body.currency ?? 'USD').toUpperCase();
-      const description = req.body.title || 'Producto SINEW';
+      const currency = String(req.body.currency ?? "USD").toUpperCase();
+      const description = req.body.title || "Producto SINEW";
+      const metadataType = normalizeResourceType(req.body.metadata?.type || req.body.metadata?.kind);
+      const metadataSlug =
+        req.body.metadata?.courseSlug || req.body.metadata?.slug || "libro-001";
 
       items.push({
-        type: req.body.metadata?.type || 'book',
-        sku:
-          req.body.metadata?.courseSlug ||
-          req.body.metadata?.slug ||
-          'libro-001',
+        type: metadataType,
+        sku: metadataSlug,
         name: description,
         quantity: 1,
         unit_amount: amountValue,
@@ -175,16 +202,22 @@ export const createOrder = async (req, res) => {
       }
     }
 
-    // Defaults si no envían items
-    const amountValue = Number(items?.[0]?.unit_amount ?? 35);
-    const currency    = String(items?.[0]?.currency ?? 'USD').toUpperCase();
-    const description = items?.[0]?.name || 'Producto SINEW';
-    const customId    = meta?.courseSlug ? `course:${meta.courseSlug}` : 'libro-001';
+    const firstItem = items?.[0] || {};
+    const amountValue = Number(firstItem.unit_amount ?? 35);
+    const currency = String(firstItem.currency ?? "USD").toUpperCase();
+    const description = firstItem.name || "Producto SINEW";
+    const itemType = normalizeResourceType(firstItem.type || meta.type || meta.kind);
+    const itemSlug = firstItem.sku || meta.courseSlug || meta.slug || "libro-001";
+
+    const customId =
+      itemType === "book"
+        ? "book:libro-001"
+        : `${itemType}:${itemSlug}`;
 
     const request = new paypal.orders.OrdersCreateRequest();
-    request.prefer('return=representation');
+    request.prefer("return=representation");
     request.requestBody({
-      intent: 'CAPTURE',
+      intent: "CAPTURE",
       purchase_units: [
         {
           amount: {
@@ -196,14 +229,14 @@ export const createOrder = async (req, res) => {
         },
       ],
       application_context: {
-        user_action: 'PAY_NOW',
-        brand_name: 'SINEW',
+        user_action: "PAY_NOW",
+        brand_name: "SINEW",
       },
     });
 
     const order = await paypalClient.execute(request);
     const links = order?.result?.links || [];
-    const approveUrl = links.find((l) => l.rel === 'approve')?.href || null;
+    const approveUrl = links.find((l) => l.rel === "approve")?.href || null;
 
     return res.status(201).json({
       id: order?.result?.id,
@@ -212,8 +245,8 @@ export const createOrder = async (req, res) => {
       links,
     });
   } catch (error) {
-    console.error('[PayPal] createOrder error:', error?.message || error);
-    return res.status(500).json({ error: 'Error creando orden de PayPal' });
+    console.error("[PayPal] createOrder error:", error?.message || error);
+    return res.status(500).json({ error: "Error creando orden de PayPal" });
   }
 };
 
@@ -221,75 +254,75 @@ export const createOrder = async (req, res) => {
    CAPTURE ORDER
    ========================= */
 /**
- * Captura orden aprobada y cumple (curso o libro).
+ * Captura orden aprobada y cumple libro/recurso.
  * Espera body:
- *  - orderID (obligatorio)
- *  - courseSlug (opcional; si viene, se otorga acceso)
- *  - email / name (opcionales; fallback si no hay datos del payer)
+ * - orderID
+ * - courseSlug (opcional)
+ * - type (opcional: course | masterclass | book)
+ * - email
+ * - name
  */
 export const captureOrder = async (req, res) => {
   try {
     if (!hasPaypalCreds) {
-      return res.status(500).json({ success: false, error: 'PayPal no configurado' });
+      return res.status(500).json({ success: false, error: "PayPal no configurado" });
     }
 
     const {
       orderID,
+      orderId: legacyOrderId,
       courseSlug: courseSlugBody,
+      type: typeFromBody,
       email: emailFromBody,
       name: nameFromBody,
     } = req.body || {};
 
-    if (!orderID) {
-      return res.status(400).json({ success: false, error: 'Falta orderID' });
+    const finalOrderId = orderID || legacyOrderId;
+
+    if (!finalOrderId) {
+      return res.status(400).json({ success: false, error: "Falta orderID" });
     }
 
-    // 🔹 Normalizamos a una sola variable interna
-    const orderId = orderID || req.body.orderId;
-
-    // 1) Verificar estado actual
-    const getReq = new paypal.orders.OrdersGetRequest(orderId);
+    const getReq = new paypal.orders.OrdersGetRequest(finalOrderId);
     const before = await paypalClient.execute(getReq);
 
-    if (before?.result?.status !== 'APPROVED') {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Orden no aprobada' });
+    if (before?.result?.status !== "APPROVED") {
+      return res.status(400).json({ success: false, error: "Orden no aprobada" });
     }
 
-    // 2) Capturar
-    const capReq = new paypal.orders.OrdersCaptureRequest(orderId);
+    const capReq = new paypal.orders.OrdersCaptureRequest(finalOrderId);
     capReq.requestBody({});
     const capture = await paypalClient.execute(capReq);
 
-    if (capture?.result?.status !== 'COMPLETED') {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Pago no completado' });
+    if (capture?.result?.status !== "COMPLETED") {
+      return res.status(400).json({ success: false, error: "Pago no completado" });
     }
 
-    // 3) Datos de la compra
-    const pu = capture.result.purchase_units?.[0];
-    const pay = pu?.payments?.captures?.[0];
+    const purchaseUnit = capture.result.purchase_units?.[0];
+    const pay = purchaseUnit?.payments?.captures?.[0];
 
-    const amountValue    = Number(pay?.amount?.value || 0);
-    const amountCurrency = String(pay?.amount?.currency_code || 'USD').toUpperCase();
+    const amountValue = Number(pay?.amount?.value || 0);
+    const amountCurrency = String(pay?.amount?.currency_code || "USD").toUpperCase();
 
-    const payer       = capture.result.payer || {};
-    const paypalEmail = payer.email_address;
-    const paypalName  = [payer?.name?.given_name, payer?.name?.surname]
+    const payer = capture.result.payer || {};
+    const paypalEmail = payer.email_address || null;
+    const paypalName = [payer?.name?.given_name, payer?.name?.surname]
       .filter(Boolean)
-      .join(' ');
+      .join(" ");
 
     const finalEmail = emailFromBody || paypalEmail || null;
-    const finalName  = (nameFromBody || paypalName || 'Buyer').trim();
+    const finalName = (nameFromBody || paypalName || "Buyer").trim();
 
-    const customId             = pu?.custom_id || '';
-    const courseSlugFromCustom =
-      customId.startsWith('course:') ? customId.split(':')[1] : null;
-    const courseSlug = courseSlugFromCustom || courseSlugBody || null;
+    const customId = purchaseUnit?.custom_id || "";
+    const parsedCustom = parseCustomId(customId);
 
-    // 4) Upsert user si hay email (o usa req.user si tu auth lo exige)
+    const resourceType =
+      parsedCustom.type !== "book"
+        ? parsedCustom.type
+        : normalizeResourceType(typeFromBody);
+
+    const courseSlug = parsedCustom.slug || courseSlugBody || null;
+
     let userId = req?.user?.id || null;
 
     if (!userId && finalEmail) {
@@ -298,60 +331,64 @@ export const captureOrder = async (req, res) => {
         user = await User.create({
           name: finalName,
           email: finalEmail,
-          passwordHash: 'TEMP',
+          passwordHash: "TEMP",
         });
       }
       userId = user._id;
     }
 
-    // 5) Registrar compra
     await Purchase.create({
       userId,
-      bookId: courseSlug ? undefined : 'libro-001',
+      bookId: courseSlug ? undefined : "libro-001",
       price: amountValue,
       currency: amountCurrency,
-      status: 'paid',
-      provider: 'paypal',
-      orderId, // 🔹 acá usamos la variable definida
+      status: "paid",
+      provider: "paypal",
+      orderId: finalOrderId,
       purchaseDate: new Date(),
-      metadata: { courseSlug },
+      metadata: {
+        type: courseSlug ? resourceType : "book",
+        courseSlug,
+      },
     });
 
-    // 6) Cumplir
     if (courseSlug) {
-      await fulfillCourseAccess({
+      await fulfillResourceAccess({
         userId,
         email: finalEmail,
         name: finalName,
         courseSlug,
-        courseTitle: pu?.description,
+        courseTitle: purchaseUnit?.description,
+        provider: "paypal",
       });
 
       return res.json({
         success: true,
         redirectTo: `${FRONTEND_URL}/cursos/${courseSlug}?paid=1`,
       });
-    } else {
-      // libro: podés adjuntar factura si la generás (buffer)
-      const { redirectTo } = await fulfillBookDownload({
-        userId,
-        email: finalEmail,
-        name: finalName,
-        // invoiceBuffer,
-        // invoiceName: `Factura-PP-${orderId}.pdf`,
-      });
-
-      return res.json({ success: true, redirectTo });
     }
+
+    const downloadResult = await fulfillBookDownload({
+      userId,
+      email: finalEmail,
+      name: finalName,
+    });
+
+    return res.json({
+      success: true,
+      redirectTo: downloadResult?.redirectTo || `${FRONTEND_URL}/gracias?status=success`,
+    });
   } catch (error) {
-    console.error('[PayPal] captureOrder error raw:', {
+    console.error("[PayPal] captureOrder error raw:", {
       message: error?.message,
       name: error?.name,
       details: error?.details,
       statusCode: error?.statusCode,
     });
-    return res
-      .status(500)
-      .json({ success: false, error: 'Error capturando pago' });
+
+    return res.status(500).json({
+      success: false,
+      error: "Error capturando pago",
+    });
   }
 };

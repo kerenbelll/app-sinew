@@ -15,9 +15,8 @@ export default {
         secondary: '#1f2937',
       },
       fontFamily: {
-        sans: ['Urbanist', 'sans-serif'],
-        grotesk: ['Space Grotesk', 'sans-serif'],
-        playfair: ['Playfair Display', 'serif'],
+        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+        grotesk: ['"Plus Jakarta Sans"', 'sans-serif'],
       },
       keyframes: {
         slowZoom: {

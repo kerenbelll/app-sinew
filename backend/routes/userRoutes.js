@@ -1,44 +1,39 @@
-// backend/routes/userRoutes.js
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+import express from "express";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
-import User from '../models/User.js';
-import PasswordReset from '../models/PasswordReset.js';
-import { sendResetEmail } from '../utils/mailer.js';
-import CourseAccess from '../models/CourseAccess.js';
-import Course from '../models/Course.js';
+import User from "../models/User.js";
+import PasswordReset from "../models/PasswordReset.js";
+import { sendResetEmail } from "../utils/mailer.js";
+import CourseAccess from "../models/CourseAccess.js";
+import Course from "../models/Course.js";
 
 const router = express.Router();
 
-/* =========================
-   Config + helpers
-   ========================= */
-const JWT_SECRET   = process.env.JWT_SECRET || 'dev_secret_change_me';
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
 
-// JWT
 function issueToken(user) {
   return jwt.sign(
     { id: user._id.toString(), email: user.email },
     JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: "7d" }
   );
 }
 
-// Middleware: requiere "Authorization: Bearer <token>"
 function authRequired(req, res, next) {
-  const auth = req.headers.authorization || '';
-  const [scheme, token] = auth.split(' ');
+  const auth = req.headers.authorization || "";
+  const [scheme, token] = auth.split(" ");
 
   if (!token) {
     console.warn(`[auth] 401 en ${req.method} ${req.originalUrl} – sin Authorization`);
-    return res.status(401).json({ message: 'UNAUTHORIZED', reason: 'missing_token' });
+    return res.status(401).json({ message: "UNAUTHORIZED", reason: "missing_token" });
   }
-  if (scheme !== 'Bearer') {
+
+  if (scheme !== "Bearer") {
     console.warn(`[auth] 401 en ${req.method} ${req.originalUrl} – esquema inválido: ${scheme}`);
-    return res.status(401).json({ message: 'UNAUTHORIZED', reason: 'invalid_scheme' });
+    return res.status(401).json({ message: "UNAUTHORIZED", reason: "invalid_scheme" });
   }
 
   try {
@@ -47,36 +42,35 @@ function authRequired(req, res, next) {
     return next();
   } catch (e) {
     console.warn(`[auth] 401 en ${req.method} ${req.originalUrl} – token inválido/expirado`);
-    return res.status(401).json({ message: 'UNAUTHORIZED', reason: 'invalid_or_expired' });
+    return res.status(401).json({ message: "UNAUTHORIZED", reason: "invalid_or_expired" });
   }
 }
 
-/* =========================
-   POST /api/users/register
-   ========================= */
-router.post('/register', async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
-    let { name = '', email, password = '' } = req.body || {};
+    let { name = "", email, password = "" } = req.body || {};
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Falta email o password' });
+      return res.status(400).json({ message: "Falta email o password" });
     }
 
     email = String(email).trim().toLowerCase();
-    name  = String(name || '').trim();
+    name = String(name || "").trim();
 
     if (!/\S+@\S+\.\S+/.test(email)) {
-      return res.status(400).json({ message: 'Email inválido' });
+      return res.status(400).json({ message: "Email inválido" });
     }
+
     const weak = password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password);
     if (weak) {
       return res.status(422).json({
-        message: 'La contraseña debe tener al menos 8 caracteres e incluir letras y números.',
+        message: "La contraseña debe tener al menos 8 caracteres e incluir letras y números.",
       });
     }
 
     const exists = await User.findOne({ email }).lean();
     if (exists) {
-      return res.status(409).json({ message: 'Email ya registrado' });
+      return res.status(409).json({ message: "Email ya registrado" });
     }
 
     const salt = await bcrypt.genSalt(12);
@@ -86,197 +80,204 @@ router.post('/register', async (req, res) => {
     const token = issueToken(user);
 
     return res.status(201).json({
-      message: 'Usuario registrado correctamente',
+      message: "Usuario registrado correctamente",
       token,
-      user: { id: user._id, name: user.name || '', email: user.email },
+      user: { id: user._id, name: user.name || "", email: user.email },
     });
   } catch (err) {
     if (err?.code === 11000 && err?.keyPattern?.email) {
-      return res.status(409).json({ message: 'Email ya registrado' });
+      return res.status(409).json({ message: "Email ya registrado" });
     }
-    console.error('[users/register] error:', err);
-    return res.status(500).json({ message: 'Error del servidor' });
+    console.error("[users/register] error:", err);
+    return res.status(500).json({ message: "Error del servidor" });
   }
 });
 
-/* =========================
-   POST /api/users/login
-   ========================= */
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
-    let { email, password = '' } = req.body || {};
+    let { email, password = "" } = req.body || {};
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Falta email o password' });
+      return res.status(400).json({ message: "Falta email o password" });
     }
+
     email = String(email).trim().toLowerCase();
 
-    const user = await User.findOne({ email }).select('+passwordHash');
+    const user = await User.findOne({ email }).select("+passwordHash");
     if (!user || !user.passwordHash) {
-      return res.status(401).json({ message: 'Credenciales inválidas' });
+      return res.status(401).json({ message: "Credenciales inválidas" });
     }
 
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ message: 'Credenciales inválidas' });
+    if (!ok) {
+      return res.status(401).json({ message: "Credenciales inválidas" });
+    }
 
     const token = issueToken(user);
+
     return res.json({
       token,
-      user: { id: user._id, name: user.name || '', email: user.email },
+      user: { id: user._id, name: user.name || "", email: user.email },
     });
   } catch (err) {
-    console.error('[users/login] error:', err);
-    return res.status(500).json({ message: 'Error del servidor' });
+    console.error("[users/login] error:", err);
+    return res.status(500).json({ message: "Error del servidor" });
   }
 });
 
-/* =========================
-   GET /api/users/profile  (protegido)
-   ========================= */
-router.get('/profile', authRequired, async (req, res) => {
+router.get("/profile", authRequired, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id)
-      .select('_id name email createdAt updatedAt');
-    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    const user = await User.findById(req.user.id).select("_id name email createdAt updatedAt");
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
 
     return res.json({
       id: user._id,
-      name: user.name || '',
+      name: user.name || "",
       email: user.email,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });
   } catch (err) {
-    console.error('[users/profile] error:', err);
-    return res.status(500).json({ message: 'Error del servidor' });
+    console.error("[users/profile] error:", err);
+    return res.status(500).json({ message: "Error del servidor" });
   }
 });
 
-/* =========================
-   PATCH /api/users/profile  (protegido) — actualizar nombre/email
-   ========================= */
-router.patch('/profile', authRequired, async (req, res) => {
+router.patch("/profile", authRequired, async (req, res) => {
   try {
     let { name, email } = req.body || {};
     const updates = {};
 
-    if (typeof name === 'string') {
+    if (typeof name === "string") {
       updates.name = String(name).trim();
     }
 
-    if (typeof email === 'string') {
+    if (typeof email === "string") {
       const newEmail = String(email).trim().toLowerCase();
+
       if (!/\S+@\S+\.\S+/.test(newEmail)) {
-        return res.status(400).json({ message: 'Email inválido' });
+        return res.status(400).json({ message: "Email inválido" });
       }
-      // evitar duplicados (otro usuario con el mismo email)
-      const clash = await User.findOne({ email: newEmail, _id: { $ne: req.user.id } }).lean();
+
+      const clash = await User.findOne({
+        email: newEmail,
+        _id: { $ne: req.user.id },
+      }).lean();
+
       if (clash) {
-        return res.status(409).json({ message: 'Ese email ya está en uso' });
+        return res.status(409).json({ message: "Ese email ya está en uso" });
       }
+
       updates.email = newEmail;
     }
 
     if (!Object.keys(updates).length) {
-      return res.status(400).json({ message: 'No hay cambios para actualizar' });
+      return res.status(400).json({ message: "No hay cambios para actualizar" });
     }
 
     const user = await User.findByIdAndUpdate(req.user.id, updates, {
       new: true,
       runValidators: true,
-      select: '_id name email',
+      select: "_id name email",
     });
 
-    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
 
-    // re-emitimos token por si cambió el email
     const token = issueToken(user);
+
     return res.json({
-      message: 'Perfil actualizado',
+      message: "Perfil actualizado",
       token,
-      user: { id: user._id, name: user.name || '', email: user.email },
+      user: { id: user._id, name: user.name || "", email: user.email },
     });
   } catch (err) {
-    console.error('[users/profile PATCH] error:', err);
-    return res.status(500).json({ message: 'Error del servidor' });
+    console.error("[users/profile PATCH] error:", err);
+    return res.status(500).json({ message: "Error del servidor" });
   }
 });
 
-/* =========================
-   PATCH /api/users/password  (protegido) — cambiar contraseña
-   ========================= */
-router.patch('/password', authRequired, async (req, res) => {
+router.patch("/password", authRequired, async (req, res) => {
   try {
-    const { currentPassword = '', newPassword = '' } = req.body || {};
+    const { currentPassword = "", newPassword = "" } = req.body || {};
+
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Faltan campos' });
+      return res.status(400).json({ message: "Faltan campos" });
     }
 
     const weak = newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword);
     if (weak) {
       return res.status(422).json({
-        message: 'La nueva contraseña debe tener al menos 8 caracteres e incluir letras y números.',
+        message: "La nueva contraseña debe tener al menos 8 caracteres e incluir letras y números.",
       });
     }
 
-    const user = await User.findById(req.user.id).select('+passwordHash');
-    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+    const user = await User.findById(req.user.id).select("+passwordHash");
 
-    const ok = await bcrypt.compare(currentPassword, user.passwordHash || '');
-    if (!ok) return res.status(401).json({ message: 'La contraseña actual no es correcta' });
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    const ok = await bcrypt.compare(currentPassword, user.passwordHash || "");
+    if (!ok) {
+      return res.status(401).json({ message: "La contraseña actual no es correcta" });
+    }
 
     const salt = await bcrypt.genSalt(12);
     user.passwordHash = await bcrypt.hash(newPassword, salt);
     await user.save();
 
-    return res.json({ ok: true, message: 'Contraseña actualizada' });
+    return res.json({ ok: true, message: "Contraseña actualizada" });
   } catch (err) {
-    console.error('[users/password PATCH] error:', err);
-    return res.status(500).json({ message: 'Error del servidor' });
+    console.error("[users/password PATCH] error:", err);
+    return res.status(500).json({ message: "Error del servidor" });
   }
 });
 
-/* =========================
-   GET /api/users/me/courses  (protegido) — (ÚNICA definición)
-   ========================= */
-router.get('/me/courses', authRequired, async (req, res) => {
+router.get("/me/courses", authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
 
     const accesses = await CourseAccess.find({ userId }).lean();
-    const slugs = accesses.map(a => a.courseSlug).filter(Boolean);
+    const slugs = accesses.map((a) => a.courseSlug).filter(Boolean);
 
-    if (!slugs.length) return res.json({ courses: [] });
+    if (!slugs.length) {
+      return res.json({ courses: [] });
+    }
 
     const courses = await Course.find({ slug: { $in: slugs } })
-      .select('slug title thumbnail level price currency')
+      .select("slug kind isArchive title thumbnail level price currency")
       .lean();
 
     return res.json({ courses });
   } catch (err) {
-    console.error('[users/me/courses] error:', err);
-    return res.status(500).json({ message: 'Error del servidor' });
+    console.error("[users/me/courses] error:", err);
+    return res.status(500).json({ message: "Error del servidor" });
   }
 });
 
-/* =========================
-   POST /api/users/forgot-password
-   ========================= */
-router.post('/forgot-password', async (req, res) => {
+router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'Falta email' });
+
+    if (!email) {
+      return res.status(400).json({ error: "Falta email" });
+    }
 
     const normalizedEmail = String(email).trim().toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
 
-    // Respuesta indistinta
     if (!user) {
-      return res.json({ message: 'Si el email está registrado, te enviamos instrucciones.' });
+      return res.json({ message: "Si el email está registrado, te enviamos instrucciones." });
     }
 
-    const rawToken  = crypto.randomBytes(32).toString('hex');
-    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1h
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
     await PasswordReset.create({ userId: user._id, tokenHash, expiresAt, used: false });
 
@@ -289,35 +290,34 @@ router.post('/forgot-password', async (req, res) => {
         resetUrl,
       });
     } catch (mailErr) {
-      console.error('[forgot-password] sendResetEmail error:', mailErr?.message || mailErr);
-      return res.status(500).json({ error: 'No pudimos enviar el email de recuperación' });
+      console.error("[forgot-password] sendResetEmail error:", mailErr?.message || mailErr);
+      return res.status(500).json({ error: "No pudimos enviar el email de recuperación" });
     }
 
-    return res.json({ message: 'Si el email está registrado, te enviamos instrucciones.' });
+    return res.json({ message: "Si el email está registrado, te enviamos instrucciones." });
   } catch (err) {
-    console.error('[users/forgot-password] error:', err);
-    return res.status(500).json({ error: 'No pudimos procesar la solicitud' });
+    console.error("[users/forgot-password] error:", err);
+    return res.status(500).json({ error: "No pudimos procesar la solicitud" });
   }
 });
 
-/* =========================
-   POST /api/users/reset-password
-   ========================= */
-router.post('/reset-password', async (req, res) => {
+router.post("/reset-password", async (req, res) => {
   try {
-    const { token, password = '' } = req.body || {};
+    const { token, password = "" } = req.body || {};
+
     if (!token || !password) {
-      return res.status(400).json({ error: 'Falta token o password' });
+      return res.status(400).json({ error: "Falta token o password" });
     }
 
     const weak = password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password);
     if (weak) {
       return res.status(400).json({
-        error: 'La contraseña debe tener al menos 8 caracteres e incluir letras y números.',
+        error: "La contraseña debe tener al menos 8 caracteres e incluir letras y números.",
       });
     }
 
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+
     const resetDoc = await PasswordReset.findOne({
       tokenHash,
       used: false,
@@ -325,51 +325,56 @@ router.post('/reset-password', async (req, res) => {
     });
 
     if (!resetDoc) {
-      return res.status(400).json({ error: 'Token inválido o expirado.' });
+      return res.status(400).json({ error: "Token inválido o expirado." });
     }
 
-    const user = await (await import('../models/User.js')).default
-      .findById(resetDoc.userId).select('+passwordHash');
+    const user = await User.findById(resetDoc.userId).select("+passwordHash");
     if (!user) {
-      return res.status(400).json({ error: 'Usuario no encontrado.' });
+      return res.status(400).json({ error: "Usuario no encontrado." });
     }
 
-    const salt = await (await import('bcryptjs')).genSalt(12);
-    user.passwordHash = await (await import('bcryptjs')).hash(password, salt);
+    const salt = await bcrypt.genSalt(12);
+    user.passwordHash = await bcrypt.hash(password, salt);
     await user.save();
 
     resetDoc.used = true;
     await resetDoc.save();
 
-    await (await import('../models/PasswordReset.js')).default.updateMany(
+    await PasswordReset.updateMany(
       { userId: user._id, used: false, expiresAt: { $gt: new Date() } },
       { $set: { used: true } }
     );
 
-    return res.json({ message: 'Contraseña actualizada correctamente. Ya podés iniciar sesión.' });
+    return res.json({
+      message: "Contraseña actualizada correctamente. Ya podés iniciar sesión.",
+    });
   } catch (err) {
-    console.error('[users/reset-password] error:', err);
-    return res.status(500).json({ error: 'No se pudo restablecer la contraseña' });
+    console.error("[users/reset-password] error:", err);
+    return res.status(500).json({ error: "No se pudo restablecer la contraseña" });
   }
 });
 
-/* =========================
-   GET /api/users/reset-password/validate/:token
-   ========================= */
 router.get("/reset-password/validate/:token", async (req, res) => {
   try {
     const raw = req.params.token || "";
     if (!raw) return res.json({ ok: false });
-    const tokenHash = (await import("crypto")).createHash("sha256").update(raw).digest("hex");
-    const PasswordReset = (await import("../models/PasswordReset.js")).default;
-    const doc = await PasswordReset.findOne({ tokenHash, used: false, expiresAt: { $gt: new Date() } }).lean();
+
+    const tokenHash = crypto.createHash("sha256").update(raw).digest("hex");
+
+    const doc = await PasswordReset.findOne({
+      tokenHash,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    }).lean();
+
     return res.json({ ok: !!doc });
   } catch {
     return res.json({ ok: false });
   }
 });
 
-/* Debug simple */
-router.get('/test', (_req, res) => res.json({ ok: true, from: 'userRoutes' }));
+router.get("/test", (_req, res) => {
+  res.json({ ok: true, from: "userRoutes" });
+});
 
 export default router;

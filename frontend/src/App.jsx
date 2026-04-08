@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { useEffect } from "react";
 import AOS from "aos";
 import "aos/dist/aos.css";
@@ -6,16 +12,21 @@ import "aos/dist/aos.css";
 import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import WhatsAppFloat from "./components/WhatsAppFloat";
 
 import Home from "./pages/Home";
 import Cursos from "./pages/Cursos";
 import CursoDetalle from "./pages/CursoDetalle";
 import Comunidad from "./pages/Comunidad";
 import Contacto from "./pages/Contacto";
+import SobreNosotros from "./pages/SobreNosotros";
+import RedSinew from "./pages/RedSinew";
+import UnirmeRed from "./pages/UnirmeRed";
 
 import SynergyPage from "./pages/SynergyPage";
 import XTalentPage from "./pages/XTalentPage";
 import CorpPage from "./pages/CorpPage";
+import EbookPrompt from "./components/EbookPrompt";
 
 import Ramas from "./components/Ramas";
 
@@ -27,8 +38,6 @@ import Download from "./pages/Download";
 import ResetPassword from "./pages/ResetPassword";
 import Perfil from "./pages/Perfil";
 import Ajustes from "./pages/Ajustes";
-
-
 
 import { UserProvider, useUser } from "./context/UserContext";
 
@@ -84,18 +93,23 @@ export default function App() {
             {/* Públicas */}
             <Route path="/" element={<Home />} />
             <Route path="/ramas" element={<Ramas />} />
+            <Route path="/sobre-nosotros" element={<SobreNosotros />} />
+            <Route path="/comunidad" element={<Comunidad />} />
 
-            {/* Catálogo y detalle de cursos */}
+          {/* Catálogo */}
             <Route path="/cursos" element={<Cursos />} />
             <Route path="/cursos/:slug" element={<CursoDetalle />} />
 
-            <Route path="/comunidad" element={<Comunidad />} />
+            <Route path="/red-sinew" element={<RedSinew />} />
+
+          
             <Route path="/contacto" element={<Contacto />} />
 
             {/* Páginas informativas */}
             <Route path="/synergy" element={<SynergyPage />} />
             <Route path="/xtalent" element={<XTalentPage />} />
             <Route path="/corp" element={<CorpPage />} />
+            <Route path="/unirme-red" element={<UnirmeRed />} />
 
             {/* Auth: si ya está logueado, NO mostrar estas páginas */}
             <Route
@@ -114,7 +128,7 @@ export default function App() {
                 </PublicOnlyRoute>
               }
             />
-              <Route path="/ajustes" element={<Ajustes />} />
+            <Route path="/ajustes" element={<Ajustes />} />
 
             {/* Protegidas */}
             <Route
@@ -133,6 +147,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
             {/* Alias opcional */}
             <Route path="/mis-cursos" element={<Navigate to="/perfil" replace />} />
 
@@ -144,7 +159,8 @@ export default function App() {
             {/* Fallback 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-
+          <WhatsAppFloat />
+          <EbookPrompt />
           <Footer />
         </Router>
       </UserProvider>
