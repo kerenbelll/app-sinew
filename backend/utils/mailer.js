@@ -394,3 +394,61 @@ export async function sendResetEmail({ toEmail, name, resetUrl }) {
   const html = resetTemplate({ name, resetUrl });
   return deliver({ to: toEmail, subject, html });
 }
+
+export async function sendRedNetworkLeadEmail({
+  fullName,
+  profession,
+  church,
+  country,
+  city,
+  whatsapp,
+  email,
+  interests = [],
+}) {
+  const adminEmail =
+    process.env.SINEW_CONTACT_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    "info@sineworg.com";
+
+  const subject = `Nueva solicitud Red SINEW – ${fullName}`;
+
+  const interestsHtml =
+    interests.length > 0
+      ? interests.map((item) => `<li style="margin:0 0 6px;">${item}</li>`).join("")
+      : `<li style="margin:0 0 6px;">No indicó preferencias</li>`;
+
+  const html = baseContainer(
+    `
+    <p style="margin:0 0 12px;color:${T.text};font-weight:600;">
+      Se recibió una nueva solicitud para unirse a la Red SINEW.
+    </p>
+
+    <div style="margin:18px 0;padding:18px;border:1px solid ${T.hairline};border-radius:16px;background:${T.surface};">
+      <p style="margin:0 0 10px;"><strong style="color:${T.text};">Nombre y apellido:</strong> ${fullName}</p>
+      <p style="margin:0 0 10px;"><strong style="color:${T.text};">Email:</strong> ${email}</p>
+      <p style="margin:0 0 10px;"><strong style="color:${T.text};">WhatsApp:</strong> ${whatsapp}</p>
+      <p style="margin:0 0 10px;"><strong style="color:${T.text};">Profesión / Rubro:</strong> ${profession}</p>
+      <p style="margin:0 0 10px;"><strong style="color:${T.text};">Iglesia:</strong> ${church || "No indicó"}</p>
+      <p style="margin:0 0 10px;"><strong style="color:${T.text};">País:</strong> ${country}</p>
+      <p style="margin:0 0 0;"><strong style="color:${T.text};">Ciudad:</strong> ${city}</p>
+    </div>
+
+    <div style="margin:18px 0;padding:18px;border:1px solid ${T.hairline};border-radius:16px;background:${T.surface};">
+      <p style="margin:0 0 10px;color:${T.text};font-weight:600;">Qué busca</p>
+      <ul style="margin:0;padding-left:18px;color:${T.dim};">
+        ${interestsHtml}
+      </ul>
+    </div>
+    `,
+    {
+      preheader: `Nueva solicitud Red SINEW – ${fullName}`,
+      title: "Nueva solicitud de Red SINEW",
+    }
+  );
+
+  return deliver({
+    to: adminEmail,
+    subject,
+    html,
+  });
+}

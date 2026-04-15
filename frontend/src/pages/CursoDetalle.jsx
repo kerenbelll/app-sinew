@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
@@ -10,6 +10,20 @@ const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost:5001").repl
 function readToken() {
   if (typeof window === "undefined") return "";
   return localStorage.getItem("auth_token") || localStorage.getItem("token") || "";
+}
+
+function splitTitleAndTeacher(rawTitle = "") {
+  const parts = String(rawTitle).split(" - ");
+  if (parts.length >= 2) {
+    return {
+      title: parts[0].trim(),
+      teacher: parts.slice(1).join(" - ").trim(),
+    };
+  }
+  return {
+    title: rawTitle,
+    teacher: "",
+  };
 }
 
 function SectionEyebrow({ children, className = "" }) {
@@ -29,8 +43,14 @@ function formatPrice(course) {
 function formatTime(seconds) {
   if (!Number.isFinite(seconds)) return "0:00";
   const total = Math.max(0, Math.floor(seconds));
-  const mins = Math.floor(total / 60);
+  const hrs = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
   const secs = total % 60;
+
+  if (hrs > 0) {
+    return `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
@@ -46,6 +66,62 @@ function isInteractiveTarget(target) {
   );
 }
 
+function IconPlay({ paused = false }) {
+  return paused ? (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.55-6.86a1 1 0 0 0 0-1.68L9.53 4.29A1 1 0 0 0 8 5.14Z" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M8 5h3v14H8zM13 5h3v14h-3z" />
+    </svg>
+  );
+}
+
+function IconVolume({ muted = false }) {
+  return muted ? (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M14 5.23v2.06a4 4 0 0 1 0 9.42v2.06A6 6 0 0 0 14 5.23ZM3 10v4h4l5 4V6L7 10H3Zm14.59 2L20 9.59 18.59 8.17 16.17 10.6l-2.42-2.42-1.42 1.41L14.76 12l-2.43 2.41 1.42 1.42 2.42-2.42 2.42 2.42 1.41-1.42L17.59 12Z" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M3 10v4h4l5 4V6L7 10H3Zm11.5 2a3.5 3.5 0 0 0-2.5-3.35v6.7A3.5 3.5 0 0 0 14.5 12Zm0-7.77v2.06a6 6 0 0 1 0 11.42v2.06a8 8 0 0 0 0-15.54Z" />
+    </svg>
+  );
+}
+
+function IconExpand() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M7 3H3v4h2V5h2V3Zm14 0h-4v2h2v2h2V3ZM5 17H3v4h4v-2H5v-2Zm16 0h-2v2h-2v2h4v-4Z" />
+    </svg>
+  );
+}
+
+function IconClose() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M18.3 5.71 12 12l6.3 6.29-1.42 1.42L10.59 13.4 4.29 19.7 2.87 18.3 9.17 12l-6.3-6.29L4.29 4.3l6.3 6.3 6.29-6.3Z" />
+    </svg>
+  );
+}
+
+function IconBack() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M15.5 6.5 9.5 12l6 5.5V6.5Zm-7 0L2.5 12l6 5.5V6.5Z" />
+    </svg>
+  );
+}
+
+function IconForward() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+      <path d="M8.5 6.5V17.5l6-5.5-6-5.5Zm7 0V17.5l6-5.5-6-5.5Z" />
+    </svg>
+  );
+}
+
 function ControlButton({ onClick, label, active = false, children, compact = false }) {
   return (
     <button
@@ -55,7 +131,7 @@ function ControlButton({ onClick, label, active = false, children, compact = fal
       title={label}
       className={[
         "inline-flex items-center justify-center rounded-full transition",
-        compact ? "h-10 w-10 text-[13px]" : "h-9 min-w-9 px-3 text-[12px] sm:text-sm",
+        compact ? "h-10 w-10 text-[13px]" : "h-10 min-w-10 px-3.5 text-[12px] sm:text-sm",
         active
           ? "border border-mint/30 bg-mint/14 text-mint hover:bg-mint hover:text-black"
           : "border border-white/15 bg-white/[0.06] text-white hover:bg-white/[0.12]",
@@ -66,7 +142,14 @@ function ControlButton({ onClick, label, active = false, children, compact = fal
   );
 }
 
-function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
+function VideoPlayer({
+  lesson,
+  poster,
+  fullscreen = false,
+  state,
+  actions,
+  playerRef,
+}) {
   const {
     playing,
     playedSeconds,
@@ -82,8 +165,8 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
     setPlayedSeconds,
     setLoadedSeconds,
     setDuration,
-    setVolume,
     setMuted,
+    seekRelative,
     openExpanded,
     closeExpanded,
   } = actions;
@@ -91,6 +174,7 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
   const [chromeVisible, setChromeVisible] = useState(!fullscreen);
   const canPlay = Boolean(lesson?.videoUrl && ReactPlayer.canPlay(lesson.videoUrl));
   const progressPercent = duration > 0 ? Math.min((playedSeconds / duration) * 100, 100) : 0;
+  const showPoster = !!poster && !playing && playedSeconds < 0.5;
 
   useEffect(() => {
     let timer;
@@ -133,32 +217,59 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
         onTouchStart={showChrome}
       >
         {canPlay ? (
-          <ReactPlayer
-            src={lesson.videoUrl}
-            width="100%"
-            height="100%"
-            playing={playing}
-            controls={false}
-            volume={volume}
-            muted={muted}
-            playsInline
-            onDurationChange={(d) => setDuration(d)}
-            onProgress={({ played, playedSeconds, loadedSeconds }) => {
-              setPlayed(played);
-              setPlayedSeconds(playedSeconds);
-              setLoadedSeconds(loadedSeconds || 0);
-            }}
-            config={{
-              youtube: {
-                playerVars: {
-                  modestbranding: 1,
-                  rel: 0,
-                  playsinline: 1,
-                },
-              },
-            }}
-            style={{ position: "absolute", inset: 0 }}
-          />
+          <>
+            <div className="absolute inset-0 z-0">
+              <ReactPlayer
+                ref={playerRef}
+                url={lesson.videoUrl}
+                width="100%"
+                height="100%"
+                playing={playing}
+                controls={false}
+                volume={volume}
+                muted={muted}
+                playsinline
+                onDuration={(d) => setDuration(d)}
+                onProgress={({ played, playedSeconds, loadedSeconds }) => {
+                  setPlayed(played);
+                  setPlayedSeconds(playedSeconds);
+                  setLoadedSeconds(loadedSeconds || 0);
+                }}
+                config={{
+                  youtube: {
+                    playerVars: {
+                      modestbranding: 1,
+                      rel: 0,
+                      playsinline: 1,
+                    },
+                  },
+                }}
+              />
+            </div>
+
+            {showPoster && (
+              <button
+                type="button"
+                onClick={() => setPlaying(true)}
+                className="absolute inset-0 z-20 group"
+                aria-label="Reproducir video"
+              >
+                <img
+                  src={poster}
+                  alt={lesson?.title || "Portada del video"}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,0.18)_0%,rgba(6,11,20,0.30)_50%,rgba(6,11,20,0.68)_100%)]" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-black/45 text-white shadow-[0_0_30px_rgba(0,0,0,0.35)] transition duration-300 group-hover:scale-105 group-hover:bg-mint group-hover:text-black">
+                    <svg viewBox="0 0 24 24" className="h-6 w-6 fill-current translate-x-[1px]">
+                      <path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l10.55-6.86a1 1 0 0 0 0-1.68L9.53 4.29A1 1 0 0 0 8 5.14Z" />
+                    </svg>
+                  </span>
+                </div>
+              </button>
+            )}
+          </>
         ) : (
           <div className="absolute inset-0 grid place-items-center bg-black/30 p-5 text-center">
             <div>
@@ -170,7 +281,7 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
                   rel="noreferrer"
                   className="mt-4 inline-flex items-center gap-2 rounded-full border border-mint/30 bg-mint/12 px-4 py-2.5 text-sm font-medium text-mint hover:bg-mint hover:text-black transition"
                 >
-                  Abrir en YouTube →
+                  Abrir en YouTube
                 </a>
               ) : null}
             </div>
@@ -189,14 +300,14 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
 
             <div className="absolute top-3 right-3 z-30">
               <ControlButton onClick={closeExpanded} label="Cerrar" compact>
-                ✕
+                <IconClose />
               </ControlButton>
             </div>
 
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-3 pb-3 pt-10 sm:px-4 sm:pb-4 md:px-5 md:pb-5">
               <div className="pointer-events-auto">
                 <div className="mb-3">
-                  <div className="relative h-1 rounded-full bg-white/10 overflow-hidden">
+                  <div className="relative h-1.5 rounded-full bg-white/10 overflow-hidden">
                     <div
                       className="absolute left-0 top-0 h-full bg-white/20"
                       style={{
@@ -212,8 +323,16 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
 
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
+                    <ControlButton onClick={() => seekRelative(-10)} label="Retroceder 10 segundos" compact>
+                      <IconBack />
+                    </ControlButton>
+
                     <ControlButton onClick={togglePlay} label={playing ? "Pausar" : "Reproducir"} active compact>
-                      {playing ? "❚❚" : "▶"}
+                      <IconPlay paused={!playing} />
+                    </ControlButton>
+
+                    <ControlButton onClick={() => seekRelative(10)} label="Avanzar 10 segundos" compact>
+                      <IconForward />
                     </ControlButton>
 
                     <ControlButton
@@ -224,7 +343,7 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
                       label={muted ? "Activar audio" : "Silenciar"}
                       compact
                     >
-                      {muted ? "🔇" : "🔊"}
+                      <IconVolume muted={muted} />
                     </ControlButton>
                   </div>
 
@@ -238,7 +357,7 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
                         href={lesson.videoUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex h-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-3 text-[12px] sm:text-sm font-medium text-white hover:bg-white/[0.10] transition"
+                        className="inline-flex h-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-3 text-[12px] sm:text-sm font-medium text-white hover:bg-white/[0.10] transition"
                       >
                         YouTube
                       </a>
@@ -254,7 +373,7 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
       {!fullscreen && canPlay && (
         <div className="border-t border-white/10 bg-[#08101f] px-3 py-3 sm:px-4 sm:py-4 md:px-5 md:py-5">
           <div className="mb-3">
-            <div className="relative h-1 rounded-full bg-white/10 overflow-hidden">
+            <div className="relative h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
                 className="absolute left-0 top-0 h-full bg-white/20"
                 style={{
@@ -268,10 +387,18 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-wrap items-center gap-2">
+              <ControlButton onClick={() => seekRelative(-10)} label="Retroceder 10 segundos" compact>
+                <IconBack />
+              </ControlButton>
+
               <ControlButton onClick={togglePlay} label={playing ? "Pausar" : "Reproducir"} active compact>
-                {playing ? "❚❚" : "▶"}
+                <IconPlay paused={!playing} />
+              </ControlButton>
+
+              <ControlButton onClick={() => seekRelative(10)} label="Avanzar 10 segundos" compact>
+                <IconForward />
               </ControlButton>
 
               <ControlButton
@@ -279,11 +406,11 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
                 label={muted ? "Activar audio" : "Silenciar"}
                 compact
               >
-                {muted ? "🔇" : "🔊"}
+                <IconVolume muted={muted} />
               </ControlButton>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-start md:justify-end gap-2">
               <span className="text-[12px] sm:text-sm text-white/70 tabular-nums">
                 {formatTime(playedSeconds)} / {formatTime(duration)}
               </span>
@@ -291,8 +418,9 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
               <button
                 type="button"
                 onClick={openExpanded}
-                className="inline-flex min-h-9 items-center justify-center rounded-full border border-mint/30 bg-mint/12 px-3 py-2 text-[12px] sm:text-sm font-medium text-mint hover:bg-mint hover:text-black transition"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-mint/30 bg-mint/12 px-3 py-2 text-[12px] sm:text-sm font-medium text-mint hover:bg-mint hover:text-black transition"
               >
+                <IconExpand />
                 Ver grande
               </button>
 
@@ -301,7 +429,7 @@ function VideoPlayer({ lesson, fullscreen = false, state, actions }) {
                   href={lesson.videoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex min-h-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-3 py-2 text-[12px] sm:text-sm font-medium text-white hover:bg-white/[0.10] transition"
+                  className="inline-flex min-h-10 items-center justify-center rounded-full border border-white/15 bg-white/[0.05] px-3 py-2 text-[12px] sm:text-sm font-medium text-white hover:bg-white/[0.10] transition"
                 >
                   YouTube
                 </a>
@@ -340,6 +468,9 @@ export default function CursoDetalle() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const inlinePlayerRef = useRef(null);
+  const fullscreenPlayerRef = useRef(null);
+
   const token = readToken();
   const headers = useMemo(
     () => (token ? { Authorization: `Bearer ${token}` } : {}),
@@ -362,7 +493,7 @@ export default function CursoDetalle() {
   const [playedSeconds, setPlayedSeconds] = useState(0);
   const [loadedSeconds, setLoadedSeconds] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(0.85);
+  const [volume] = useState(0.85);
   const [muted, setMuted] = useState(false);
 
   const paidSuccess =
@@ -372,6 +503,12 @@ export default function CursoDetalle() {
   const isMasterclass = String(course?.kind || "") === "masterclass";
   const canBuy = course && !isFree && !hasAccess;
   const selectedLesson = lessons[selectedLessonIndex] || null;
+  const selectedPoster = selectedLesson?.thumbnail || course?.thumbnail || "";
+
+  const { title: displayTitle, teacher: teacherName } = useMemo(
+    () => splitTitleAndTeacher(course?.title || ""),
+    [course?.title]
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -472,14 +609,34 @@ export default function CursoDetalle() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [hasAccess, selectedLesson]);
 
+  const seekPlayersTo = (seconds) => {
+    const safe = Math.max(0, Math.min(duration || 0, seconds));
+
+    [inlinePlayerRef.current, fullscreenPlayerRef.current].forEach((ref) => {
+      if (ref?.seekTo) {
+        try {
+          ref.seekTo(safe, "seconds");
+        } catch {
+          // no-op
+        }
+      }
+    });
+
+    setPlayedSeconds(safe);
+  };
+
+  const seekRelative = (delta) => {
+    seekPlayersTo(playedSeconds + delta);
+  };
+
   const actions = {
     setPlaying,
     setPlayed,
     setPlayedSeconds,
     setLoadedSeconds,
     setDuration,
-    setVolume,
     setMuted,
+    seekRelative,
     openExpanded: () => setIsExpandedPlayerOpen(true),
     closeExpanded: () => setIsExpandedPlayerOpen(false),
   };
@@ -510,7 +667,7 @@ export default function CursoDetalle() {
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#060b14] text-white">
       <div className="pointer-events-none absolute inset-0 z-0">
-        <div className="absolute -top-24 left-1/2 h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-[#98f5e1] opacity-[0.08] blur-3xl" />
+        <div className="absolute -top-24 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-[#98f5e1] opacity-[0.08] blur-3xl" />
         <div className="absolute top-[18%] left-[4%] h-[22rem] w-[22rem] rounded-full bg-white opacity-[0.03] blur-3xl" />
         <div className="absolute bottom-[8%] right-[6%] h-[24rem] w-[24rem] rounded-full bg-[#98f5e1] opacity-[0.05] blur-3xl" />
       </div>
@@ -519,7 +676,7 @@ export default function CursoDetalle() {
         <FondoParticulas opacity={0.1} />
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1800px] px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-5 md:py-8">
+      <div className="relative z-10 mx-auto w-full max-w-[1380px] px-4 sm:px-6 lg:px-8 xl:px-10 py-5 md:py-8">
         <div className="mb-4 md:mb-6">
           <Link
             to="/cursos"
@@ -543,128 +700,94 @@ export default function CursoDetalle() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45 }}
-              className="overflow-hidden rounded-[24px] md:rounded-[32px] border border-white/10 bg-white/[0.04] backdrop-blur-xl"
+              className="rounded-[24px] md:rounded-[30px] border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden"
             >
-              <div className="grid grid-cols-1 2xl:grid-cols-12">
-                <div className="2xl:col-span-8">
-                  <div className="relative overflow-hidden">
-                    <div className="relative h-[200px] sm:h-[260px] md:h-[360px] xl:h-[460px] 2xl:h-[520px]">
-                      {course.thumbnail ? (
-                        <img
-                          src={course.thumbnail}
-                          alt={course.title}
-                          className="absolute inset-0 h-full w-full object-cover"
-                          loading="eager"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="absolute inset-0 bg-black/30" />
-                      )}
-                      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,11,20,0.12)_0%,rgba(6,11,20,0.18)_46%,rgba(6,11,20,0.58)_100%)]" />
-                    </div>
+              <div className="p-5 sm:p-6 md:p-7 xl:p-8">
+                <div className="max-w-5xl">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
+                        isFree
+                          ? "bg-mint text-black"
+                          : "border border-white/14 bg-white/[0.06] text-white"
+                      }`}
+                    >
+                      {isMasterclass ? "Masterclass" : "Curso"}
+                    </span>
 
-                    <div className="border-t border-white/10 bg-[#060b14]/88 backdrop-blur-md p-4 sm:p-5 md:p-7 xl:p-8 2xl:p-10">
-                      <SectionEyebrow>
-                        {isMasterclass ? "Masterclass" : "Curso"}
-                      </SectionEyebrow>
+                    <span className="rounded-full border border-white/12 bg-white/[0.03] px-3 py-1 text-[12px] text-white/76">
+                      {formatPrice(course)}
+                    </span>
 
-                      <div className="mt-4 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                        <div className="max-w-4xl">
-                          <h1 className="text-[clamp(24px,5vw,58px)] font-semibold leading-[0.96] tracking-tight text-white">
-                            {course.title}
-                          </h1>
-
-                          {course.short ? (
-                            <p className="mt-4 max-w-3xl text-[15px] sm:text-[16px] md:text-[18px] leading-7 md:leading-9 text-white/76">
-                              {course.short}
-                            </p>
-                          ) : null}
-                        </div>
-
-                        <div className="flex shrink-0 flex-wrap gap-2 xl:justify-end">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide ${
-                              isFree
-                                ? "bg-mint text-black"
-                                : "border border-white/14 bg-white/[0.06] text-white"
-                            }`}
-                          >
-                            {isFree ? "Gratis" : "Pro"}
-                          </span>
-
-                          <span className="rounded-full border border-white/12 bg-white/[0.03] px-3 py-1 text-[12px] text-white/76">
-                            {formatPrice(course)}
-                          </span>
-
-                          {course.isArchive && (
-                            <span className="rounded-full border border-white/12 bg-white/[0.03] px-3 py-1 text-[12px] text-white/76">
-                              Archivo
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    {course.isArchive && (
+                      <span className="rounded-full border border-white/12 bg-white/[0.03] px-3 py-1 text-[12px] text-white/76">
+                        Archivo
+                      </span>
+                    )}
                   </div>
-                </div>
 
-                <div className="2xl:col-span-4 border-t 2xl:border-t-0 2xl:border-l border-white/10">
-                  <div className="flex h-full flex-col p-4 sm:p-5 md:p-7 xl:p-8 2xl:p-10">
+                  <h1 className="mt-4 text-[clamp(24px,3.2vw,40px)] font-semibold leading-[1.02] tracking-tight text-white">
+                    {displayTitle}
+                  </h1>
+
+                  {teacherName ? (
+                    <p className="mt-3 text-[12px] md:text-[13px] font-medium uppercase tracking-[0.12em] text-white/62">
+                      Docente: {teacherName}
+                    </p>
+                  ) : null}
+
+                  {course.short ? (
+                    <p className="mt-4 max-w-3xl text-[14px] sm:text-[15px] md:text-[16px] leading-7 text-white/76">
+                      {course.short}
+                    </p>
+                  ) : null}
+
+                  <div className="mt-6 h-px w-full bg-gradient-to-r from-white/12 via-white/8 to-transparent" />
+
+                  <div className="mt-6">
+                    <SectionEyebrow>Descripción</SectionEyebrow>
+
                     {paidSuccess && (
-                      <div className="rounded-2xl border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">
+                      <div className="mt-4 max-w-3xl rounded-2xl border border-mint/20 bg-mint/10 px-4 py-3 text-sm text-mint">
                         Pago registrado correctamente. Ya podés acceder al contenido.
                       </div>
                     )}
 
                     {course.long ? (
                       <p
-                        className={`text-[14px] sm:text-[15px] md:text-[16px] leading-7 md:leading-8 text-white/68 ${
-                          paidSuccess ? "mt-5" : ""
+                        className={`max-w-4xl text-[14px] sm:text-[15px] md:text-[16px] leading-7 text-white/68 ${
+                          paidSuccess ? "mt-4" : "mt-3"
                         }`}
                       >
                         {course.long}
                       </p>
-                    ) : null}
+                    ) : (
+                      <p className="mt-3 max-w-4xl text-[14px] sm:text-[15px] md:text-[16px] leading-7 text-white/68">
+                        Este recurso ya está disponible para que puedas explorarlo y avanzar a tu ritmo.
+                      </p>
+                    )}
 
-                    <div className="mt-6 2xl:mt-auto 2xl:pt-7 flex flex-col gap-3">
-                      {hasAccess ? (
-                        <a
-                          href="#contenido-curso"
-                          className="inline-flex items-center justify-center gap-2 rounded-full border border-mint/30 bg-mint/12 px-5 py-3 text-sm md:text-[15px] font-medium text-mint hover:bg-mint hover:text-black transition"
-                        >
-                          Ir al contenido →
-                        </a>
-                      ) : isFree ? (
-                        <a
-                          href="#contenido-curso"
-                          className="inline-flex items-center justify-center gap-2 rounded-full border border-mint/30 bg-mint/12 px-5 py-3 text-sm md:text-[15px] font-medium text-mint hover:bg-mint hover:text-black transition"
-                        >
-                          Ver gratis →
-                        </a>
-                      ) : needsLogin ? (
-                        <button
-                          type="button"
-                          onClick={handleLogin}
-                          className="inline-flex items-center justify-center gap-2 rounded-full border border-mint/30 bg-mint/12 px-5 py-3 text-sm md:text-[15px] font-medium text-mint hover:bg-mint hover:text-black transition"
-                        >
-                          Iniciar sesión para comprar →
-                        </button>
-                      ) : canBuy || needsPayment ? (
-                        <button
-                          type="button"
-                          onClick={handleBuy}
-                          className="inline-flex items-center justify-center gap-2 rounded-full border border-mint/30 bg-mint/12 px-5 py-3 text-sm md:text-[15px] font-medium text-mint hover:bg-mint hover:text-black transition"
-                        >
-                          {isMasterclass ? "Comprar acceso" : "Comprar curso"} →
-                        </button>
-                      ) : null}
-
-                      <Link
-                        to="/cursos"
-                        className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-5 py-3 text-sm md:text-[15px] font-medium text-white hover:bg-white/[0.10] transition"
-                      >
-                        Explorar más
-                      </Link>
-                    </div>
+                    {!hasAccess && !isFree && (
+                      <div className="mt-6">
+                        {needsLogin ? (
+                          <button
+                            type="button"
+                            onClick={handleLogin}
+                            className="inline-flex items-center justify-center rounded-full border border-mint/30 bg-mint/12 px-5 py-3 text-sm md:text-[15px] font-medium text-mint hover:bg-mint hover:text-black transition"
+                          >
+                            Iniciar sesión para comprar
+                          </button>
+                        ) : canBuy || needsPayment ? (
+                          <button
+                            type="button"
+                            onClick={handleBuy}
+                            className="inline-flex items-center justify-center rounded-full border border-mint/30 bg-mint/12 px-5 py-3 text-sm md:text-[15px] font-medium text-mint hover:bg-mint hover:text-black transition"
+                          >
+                            {isMasterclass ? "Comprar acceso" : "Comprar curso"}
+                          </button>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -675,14 +798,14 @@ export default function CursoDetalle() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: 0.08 }}
-              className="mt-6 md:mt-10"
+              className="mt-6 md:mt-8"
             >
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 md:gap-6 xl:gap-8">
                 <div className="xl:col-span-8 order-1">
                   <div className="rounded-[24px] md:rounded-[30px] border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden">
                     <div className="p-4 sm:p-5 md:p-7 xl:p-8 border-b border-white/10">
                       <SectionEyebrow>Reproducción</SectionEyebrow>
-                      <h2 className="mt-3 md:mt-4 text-[clamp(20px,2.8vw,38px)] font-semibold leading-[1.02] tracking-tight text-white">
+                      <h2 className="mt-3 md:mt-4 text-[clamp(20px,2.4vw,30px)] font-semibold leading-[1.02] tracking-tight text-white">
                         {selectedLesson?.title || "Contenido del recurso"}
                       </h2>
                     </div>
@@ -692,13 +815,15 @@ export default function CursoDetalle() {
                         {!isExpandedPlayerOpen && (
                           <VideoPlayer
                             lesson={selectedLesson}
+                            poster={selectedPoster}
                             fullscreen={false}
                             state={state}
                             actions={actions}
+                            playerRef={inlinePlayerRef}
                           />
                         )}
 
-                        <div className="mt-4 md:mt-5 rounded-2xl border border-white/10 bg-white/[0.03] px-4 md:px-5 py-4">
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 md:px-5 py-4">
                           <p className="text-[12px] uppercase tracking-[0.18em] text-white/40">
                             Ahora viendo
                           </p>
@@ -722,7 +847,7 @@ export default function CursoDetalle() {
                     <div className="mt-5 md:mt-6 rounded-[24px] md:rounded-[30px] border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden">
                       <div className="p-4 sm:p-5 md:p-7 xl:p-8 border-b border-white/10">
                         <SectionEyebrow>Materiales</SectionEyebrow>
-                        <h2 className="mt-3 md:mt-4 text-[clamp(20px,2.4vw,32px)] font-semibold leading-[1.02] tracking-tight text-white">
+                        <h2 className="mt-3 md:mt-4 text-[clamp(20px,2.2vw,28px)] font-semibold leading-[1.02] tracking-tight text-white">
                           Recursos complementarios
                         </h2>
                       </div>
@@ -740,7 +865,7 @@ export default function CursoDetalle() {
                   <div className="xl:sticky xl:top-8 rounded-[24px] md:rounded-[30px] border border-white/10 bg-white/[0.04] backdrop-blur-xl overflow-hidden">
                     <div className="p-4 sm:p-5 md:p-7 xl:p-8 border-b border-white/10">
                       <SectionEyebrow>Lecciones</SectionEyebrow>
-                      <h2 className="mt-3 md:mt-4 text-[clamp(20px,2.2vw,32px)] font-semibold leading-[1.02] tracking-tight text-white">
+                      <h2 className="mt-3 md:mt-4 text-[clamp(20px,2vw,28px)] font-semibold leading-[1.02] tracking-tight text-white">
                         Contenido
                       </h2>
                     </div>
@@ -795,9 +920,11 @@ export default function CursoDetalle() {
                     <div className="mx-auto h-full w-full max-w-[1800px]">
                       <VideoPlayer
                         lesson={selectedLesson}
+                        poster={selectedPoster}
                         fullscreen={true}
                         state={state}
                         actions={actions}
+                        playerRef={fullscreenPlayerRef}
                       />
                     </div>
                   </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import FondoParticulas from "../components/FondoParticulas";
-import logoA1 from "../assets/img/A1.png";
+import synergyLogo from "../assets/img/synergylogocolor.png";
 
 const CONTENT_BY_SLUG = {
   comunicacion: {
@@ -18,7 +18,7 @@ const CONTENT_BY_SLUG = {
     chips: ["Tecnología", "Ideologías", "Plan de Dios"],
   },
   "renovacion-mente": {
-    descripcion: "Herramientas bíblicas prácticas para tu llamado.",
+    descripcion: "¿Cómo renuevo la mente de manera práctica y cotidiana?",
     descripcionLarga:
       "¿Te sentís dividido internamente? ¿Te cuesta conciliar tu llamado con tu trabajo o estudios? O incluso, ¿Tenés dificultades para entender qué es lo que Dios espera de vos? En este curso recibirás herramientas bíblicas practicas para renovar tu mente y, así, entender la buena, agradable y perfecta voluntad de Dios. Tenemos que salir del viejo paradigma caído y renovarnos a lo nuevo. Tenemos la mente de Cristo, ¡Desarrollémosla!",
     chips: ["Llamado", "Herramientas bíblicas", "Renovación"],
@@ -37,9 +37,10 @@ const CONTENT_BY_SLUG = {
     chips: ["Iglesia", "Identidad", "Gloria"],
   },
   "masterclass-silencio": {
-    descripcion: "Una mirada inicial sobre silencio, dirección y proceso interior.",
+    descripcion:
+      "Dios nos muestra al silencio como la antesala de lo impresionante, el preludio de las maravillas.",
     descripcionLarga:
-      "Una masterclass gratuita para abrir el tema del silencio, la dirección y la escucha desde una perspectiva bíblica.",
+      "El silencio muchas veces es visto como ausencia, falta y pérdida. Escuchamos expresiones como hubo un silencio sepulcral e, inconscientemente, vinculamos al silencio incluso con la muerte. Bíblicamente esto no es estrictamente así. Dios nos muestra al silencio como la antesala de lo impresionante, el preludio de las maravillas. En nuestro discurso podemos utilizar el silencio como algo fantástico, un arte divino que, al ser imagen y semejanza del Dios eterno, tenemos a nuestra disposición. Selah.",
     chips: ["Silencio", "Dirección", "Escucha"],
   },
   "masterclass-ecosistema-critica": {
@@ -61,15 +62,16 @@ const CONTENT_BY_SLUG = {
     chips: ["Mente", "Escritura", "Integridad"],
   },
   "masterclass-cv-entrevistas": {
-    descripcion: "Un espacio planteado para crecer y adquirir herramientas para nuestra vida profesional.",
+    descripcion:
+      "Un espacio planteado para crecer y adquirir herramientas para nuestra vida profesional.",
     descripcionLarga:
       "¿Cómo armo un CV correctamente? ¿Cómo me comporto en una entrevista laboral? ¿Qué digo y qué no? Todo esto y mucho más en un espacio planteado para crecer y adquirir herramientas para nuestra vida profesional. Mansos como palomas, ¡pero también astutos como serpientes!",
     chips: ["CV", "Entrevistas", "Trabajo"],
   },
   "masterclass-renovacion-mente": {
-    descripcion: "Una introducción a la renovación, la mentalidad y la transformación.",
+    descripcion: "¿De qué mente debo salir?, ¿A qué mentalidad debo ir?",
     descripcionLarga:
-      "Una masterclass gratuita para empezar a trabajar principios de renovación de la mente, transformación interior y alineación con la verdad de Dios.",
+      "La mente de Cristo, la tenemos. Al menos eso dijo Pablo a los Corintios. Esto pareciera contradictorio a veces, ya que la mayoría de nosotros, los seres humanos, peleamos día tras día contra lo viejo intentando asirnos de lo nuevo. La Biblia detalla claramente lo que respecta a la vieja naturaleza, la vieja mentalidad pero también abarca de manera impactante las características de la Mente de nuestro amado Mesías. ¿De qué mente debo salir?, ¿A qué mentalidad debo ir?, ¿Cómo hago?",
     chips: ["Renovación", "Mentalidad", "Transformación"],
   },
   "masterclass-apocalipsis-islamico": {
@@ -80,9 +82,23 @@ const CONTENT_BY_SLUG = {
   },
 };
 
+function splitTitleAndTeacher(rawTitle = "") {
+  const parts = String(rawTitle).split(" - ");
+  if (parts.length >= 2) {
+    return {
+      title: parts[0].trim(),
+      teacher: parts.slice(1).join(" - ").trim(),
+    };
+  }
+  return {
+    title: rawTitle,
+    teacher: "",
+  };
+}
+
 function SectionEyebrow({ children, className = "" }) {
   return (
-    <p className={`text-[11px] uppercase tracking-[0.24em] text-white/45 ${className}`}>
+    <p className={`text-[11px] uppercase tracking-[0.22em] text-white/42 ${className}`}>
       {children}
     </p>
   );
@@ -104,10 +120,33 @@ function SegmentedButton({ active, onClick, children }) {
       type="button"
       onClick={onClick}
       className={[
-        "rounded-full px-5 py-2.5 text-sm md:text-[15px] font-medium transition duration-300",
+        "inline-flex items-center justify-center rounded-full",
+        "px-4 py-2 md:px-4.5 md:py-2.5",
+        "text-[13px] md:text-[14px] font-medium leading-none",
+        "whitespace-nowrap transition duration-300",
         active
-          ? "bg-mint text-black shadow-[0_0_24px_rgba(152,245,225,0.22)]"
-          : "border border-white/12 bg-white/[0.04] text-white/82 hover:bg-white/[0.08] hover:border-white/20",
+          ? "bg-mint text-black shadow-[0_0_20px_rgba(152,245,225,0.18)]"
+          : "border border-white/12 bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:border-white/20",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SubFilterButton({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "inline-flex items-center justify-center rounded-full",
+        "px-3.5 py-2 md:px-4 md:py-2",
+        "text-[12px] md:text-[13px] font-medium leading-none",
+        "whitespace-nowrap transition duration-300",
+        active
+          ? "border border-mint/30 bg-mint/12 text-mint"
+          : "border border-white/10 bg-white/[0.03] text-white/68 hover:bg-white/[0.07] hover:text-white",
       ].join(" ")}
     >
       {children}
@@ -118,6 +157,11 @@ function SegmentedButton({ active, onClick, children }) {
 function ResourceCard({ item }) {
   const [expanded, setExpanded] = useState(false);
   const isLong = Boolean(item.descripcionLarga);
+
+  const { title: resourceTitle, teacher: teacherName } = useMemo(
+    () => splitTitleAndTeacher(item.titulo),
+    [item.titulo]
+  );
 
   return (
     <motion.article
@@ -134,7 +178,7 @@ function ResourceCard({ item }) {
         {item.img ? (
           <img
             src={item.img}
-            alt={item.titulo}
+            alt={resourceTitle}
             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
             loading="lazy"
             decoding="async"
@@ -148,7 +192,7 @@ function ResourceCard({ item }) {
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#060b14]/92 via-[#060b14]/18 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060b14]/95 via-[#060b14]/30 to-transparent" />
 
         <div className="absolute top-4 left-4 flex items-center gap-2">
           <span
@@ -168,10 +212,16 @@ function ResourceCard({ item }) {
           )}
         </div>
 
-        <div className="absolute bottom-4 left-4 right-4">
-          <h3 className="text-[20px] md:text-[22px] font-semibold leading-[1.08] text-white drop-shadow">
-            {item.titulo}
+        <div className="absolute inset-x-0 bottom-0 p-4 md:p-5">
+          <h3 className="text-[18px] md:text-[20px] font-semibold leading-[1.08] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.35)]">
+            {resourceTitle}
           </h3>
+
+          {teacherName ? (
+            <p className="mt-1 text-[12px] md:text-[13px] font-medium tracking-[0.08em] uppercase text-white/70">
+              Docente: {teacherName}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -188,7 +238,9 @@ function ResourceCard({ item }) {
         </div>
 
         <div className="mt-5">
-          <p className="text-[15px] md:text-[16px] leading-7 text-white/78">{item.descripcion}</p>
+          <p className="text-[15px] md:text-[16px] leading-7 text-white/78">
+            {item.descripcion}
+          </p>
 
           <AnimatePresence initial={false}>
             {expanded && isLong && (
@@ -231,7 +283,7 @@ function ResourceCard({ item }) {
                 : "border border-white/18 bg-white/[0.04] text-white hover:bg-white/[0.10] hover:border-white/26",
             ].join(" ")}
           >
-            {item.primary ? "Ver gratis" : "Ver curso"}
+            {item.primary ? "Ver gratis" : "Ver recurso"}
             <span className="transition-transform duration-300 group-hover:translate-x-0.5">
               →
             </span>
@@ -247,6 +299,7 @@ export default function Cursos() {
   const [loading, setLoading] = useState(true);
   const [catalog, setCatalog] = useState([]);
   const [view, setView] = useState("cursos");
+  const [masterclassFilter, setMasterclassFilter] = useState("recientes");
 
   useEffect(() => {
     let mounted = true;
@@ -312,8 +365,31 @@ export default function Cursos() {
     };
   }, [catalog]);
 
-  const visibleItems =
-    view === "cursos" ? cursos : view === "masterclasses" ? masterclasses : archivo;
+  const visibleItems = useMemo(() => {
+    if (view === "cursos") return cursos;
+    return masterclassFilter === "recientes" ? masterclasses : archivo;
+  }, [view, masterclassFilter, cursos, masterclasses, archivo]);
+
+  const currentEyebrow =
+    view === "cursos"
+      ? "Cursos"
+      : masterclassFilter === "recientes"
+      ? "Masterclasses"
+      : "Archivo";
+
+  const currentTitle =
+    view === "cursos"
+      ? "Recorridos más completos para profundizar"
+      : masterclassFilter === "recientes"
+      ? "Recursos puntuales para explorar temas específicos"
+      : "Masterclasses de años anteriores";
+
+  const currentDescription =
+    view === "cursos"
+      ? "Acá vas a encontrar los cursos disponibles de SINEW, incluyendo programas pagos y también cursos gratuitos."
+      : masterclassFilter === "recientes"
+      ? "Las masterclasses funcionan como recursos más breves y enfocados para abrir conversaciones, incorporar herramientas y explorar temas concretos."
+      : "En esta sección reunimos contenido histórico y masterclasses de archivo que siguen aportando valor formativo.";
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#060b14] text-white">
@@ -329,41 +405,52 @@ export default function Cursos() {
         <FondoParticulas opacity={0.1} />
       </div>
 
-      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 pt-8 md:pt-12 pb-20 md:pb-28">
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 pt-12 md:pt-16 pb-20 md:pb-28">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55 }}
-          className="mx-auto w-full max-w-[1920px] mb-14 md:mb-18"
+          className="mx-auto w-full max-w-[1920px] mb-16 md:mb-24"
         >
-          <div className="relative overflow-hidden rounded-[30px] md:rounded-[36px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+          <div className="relative overflow-hidden rounded-[28px] md:rounded-[36px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(152,245,225,0.08),transparent_30%)]" />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_34%,transparent_70%,rgba(255,255,255,0.015))]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_30%,transparent_70%,rgba(255,255,255,0.015))]" />
 
-            <div className="relative z-10 flex items-center justify-center px-5 sm:px-8 md:px-10 xl:px-16 2xl:px-24 py-12 sm:py-14 md:py-16 xl:py-20">
-              <div className="w-full max-w-[1180px] text-center">
+            <div className="relative z-10 flex items-center justify-center px-5 sm:px-8 md:px-10 xl:px-16 2xl:px-24 py-14 sm:py-16 md:py-20 xl:py-24 2xl:py-28">
+              <div className="w-full max-w-[1200px] text-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.08 }}
+                  className="mb-6 md:mb-7 flex justify-center"
+                >
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/60 backdrop-blur-sm shadow-[0_0_24px_rgba(152,245,225,0.08)]">
+                    Área Synergy
+                  </span>
+                </motion.div>
+
                 <motion.img
-                  src={logoA1}
-                  alt="SINEW"
+                  src={synergyLogo}
+                  alt="Synergy"
                   initial={{ opacity: 0, y: 14, scale: 0.985 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.85, delay: 0.16 }}
-                  className="mx-auto w-[clamp(130px,13vw,220px)] h-auto select-none drop-shadow-[0_0_24px_rgba(152,245,225,0.14)]"
+                  className="mx-auto w-[clamp(170px,22vw,320px)] h-auto select-none object-contain drop-shadow-[0_0_26px_rgba(152,245,225,0.16)]"
                   loading="eager"
                   decoding="async"
                 />
 
-                <SectionEyebrow className="mt-6 md:mt-8">Formación disponible</SectionEyebrow>
+                <SectionEyebrow className="mt-7 md:mt-8">Recursos</SectionEyebrow>
 
                 <motion.h1
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.28 }}
-                  className="mt-4 text-[clamp(30px,5vw,64px)] font-semibold tracking-tight leading-[0.95] text-white"
+                  className="mt-4 md:mt-5 text-[clamp(24px,4.8vw,68px)] font-semibold tracking-tight leading-[0.96] text-white"
                 >
                   Cursos y
                   <span className="block bg-gradient-to-r from-[#98f5e1] via-white to-[#98f5e1] bg-clip-text text-transparent">
-                    masterclasses
+                    Masterclasses
                   </span>
                 </motion.h1>
 
@@ -371,37 +458,62 @@ export default function Cursos() {
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.38 }}
-                  className="mt-6 max-w-[900px] mx-auto text-[16px] md:text-[19px] leading-8 md:leading-9 text-white/70"
+                  className="mt-5 md:mt-6 max-w-[980px] mx-auto text-[14px] sm:text-[15px] md:text-[18px] xl:text-[20px] leading-7 md:leading-8 xl:leading-9 text-white/70"
                 >
                   Recursos diseñados para avanzar con más claridad, profundidad y dirección.
                   Elegí el formato que mejor se ajuste a tu momento.
                 </motion.p>
 
                 <motion.div
+                  initial={{ opacity: 0, scaleX: 0.7 }}
+                  animate={{ opacity: 1, scaleX: 1 }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  className="mx-auto mt-8 md:mt-10 h-px w-24 md:w-32 bg-gradient-to-r from-transparent via-white/28 to-transparent"
+                />
+
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.75, delay: 0.5 }}
-                  className="mt-8 flex flex-wrap items-center justify-center gap-3"
+                  transition={{ duration: 0.75, delay: 0.56 }}
+                  className="mt-8 flex flex-wrap items-center justify-center gap-2 md:gap-3 max-w-[420px] sm:max-w-none mx-auto"
                 >
-                  <SegmentedButton active={view === "cursos"} onClick={() => setView("cursos")}>
+                  <SegmentedButton
+                    active={view === "cursos"}
+                    onClick={() => setView("cursos")}
+                  >
                     Cursos
                   </SegmentedButton>
 
-                  <SegmentedButton active={view === "masterclasses"} onClick={() => setView("masterclasses")}>
+                  <SegmentedButton
+                    active={view === "masterclasses"}
+                    onClick={() => setView("masterclasses")}
+                  >
                     Masterclasses
-                  </SegmentedButton>
-
-                  <SegmentedButton active={view === "archivo"} onClick={() => setView("archivo")}>
-                    Archivo
                   </SegmentedButton>
                 </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, scaleX: 0.7 }}
-                  animate={{ opacity: 1, scaleX: 1 }}
-                  transition={{ duration: 0.8, delay: 0.58 }}
-                  className="mx-auto mt-9 h-px w-28 bg-gradient-to-r from-transparent via-white/28 to-transparent"
-                />
+                {view === "masterclasses" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="mt-5 flex flex-wrap items-center justify-center gap-2 md:gap-3"
+                  >
+                    <SubFilterButton
+                      active={masterclassFilter === "recientes"}
+                      onClick={() => setMasterclassFilter("recientes")}
+                    >
+                      Masterclasses recientes
+                    </SubFilterButton>
+
+                    <SubFilterButton
+                      active={masterclassFilter === "archivo"}
+                      onClick={() => setMasterclassFilter("archivo")}
+                    >
+                      Archivo
+                    </SubFilterButton>
+                  </motion.div>
+                )}
               </div>
             </div>
           </div>
@@ -409,28 +521,11 @@ export default function Cursos() {
 
         <div className="mx-auto w-full max-w-[1920px]">
           <div className="max-w-4xl">
-            <SectionEyebrow>
-              {view === "cursos"
-                ? "Cursos"
-                : view === "masterclasses"
-                ? "Masterclasses"
-                : "Archivo"}
-            </SectionEyebrow>
-
-            <SectionTitle>
-              {view === "cursos"
-                ? "Recorridos más completos para profundizar"
-                : view === "masterclasses"
-                ? "Recursos puntuales para explorar temas específicos"
-                : "Masterclasses de años anteriores"}
-            </SectionTitle>
+            <SectionEyebrow>{currentEyebrow}</SectionEyebrow>
+            <SectionTitle>{currentTitle}</SectionTitle>
 
             <p className="mt-4 max-w-3xl text-white/68 text-[15px] md:text-[17px] leading-7 md:leading-8">
-              {view === "cursos"
-                ? "Acá vas a encontrar los cursos disponibles de SINEW, incluyendo programas pagos y también cursos gratuitos con desarrollo más amplio."
-                : view === "masterclasses"
-                ? "Las masterclasses funcionan como recursos más breves y enfocados para abrir conversaciones, incorporar herramientas y explorar temas concretos."
-                : "En esta sección reunimos contenido histórico y masterclasses de archivo que siguen aportando valor formativo."}
+              {currentDescription}
             </p>
           </div>
 
@@ -439,7 +534,7 @@ export default function Cursos() {
               Cargando recursos...
             </div>
           ) : visibleItems.length > 0 ? (
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6 xl:gap-7">
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 xl:gap-6">
               {visibleItems.map((item) => (
                 <ResourceCard key={item.slug} item={item} />
               ))}

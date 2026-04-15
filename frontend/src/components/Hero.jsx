@@ -41,23 +41,20 @@ const Hero = () => {
   const bgY = useTransform(
     scrollYProgress,
     [0, 1],
-    isMobile ? ["0%", "0%"] : ["0%", "10%"]
+    isMobile ? ["0%", "0%"] : ["0%", "8%"]
   );
 
   const contentY = useTransform(
     scrollYProgress,
     [0, 1],
-    isMobile ? ["0%", "0%"] : ["0%", "40px"]
+    isMobile ? ["0%", "0%"] : ["0%", "18px"]
   );
 
   const contentOpacity = useTransform(
     scrollYProgress,
-    [0, 0.75],
-    isMobile ? [1, 1] : [1, 0.22]
+    [0, 0.52],
+    isMobile ? [1, 1] : [1, 0]
   );
-
-  const arrowOpacity = useTransform(scrollYProgress, [0, 0.55], [0.7, 0]);
-  const arrowY = useTransform(scrollYProgress, [0, 1], [0, 14]);
 
   return (
     <section
@@ -88,7 +85,7 @@ const Hero = () => {
         <div className="absolute inset-0 bg-[#08101f]/55" />
       </div>
 
-      {/* Glows más suaves */}
+      {/* Glows */}
       <div className="pointer-events-none absolute inset-0 z-10">
         <div
           className={`absolute -top-16 left-1/2 -translate-x-1/2 rounded-full bg-[#98f5e1] blur-3xl ${
@@ -109,7 +106,7 @@ const Hero = () => {
       {/* Contenido */}
       <motion.div
         style={{ y: contentY, opacity: contentOpacity }}
-        className="relative z-30 mx-auto flex max-w-5xl flex-col items-center px-5 text-center sm:px-6 lg:px-8 will-change-transform"
+        className="relative z-30 mx-auto flex max-w-5xl flex-col items-center px-5 pt-10 pb-24 text-center sm:px-6 lg:px-8 will-change-transform"
       >
         <RevealText delay={0.05}>
           <img
@@ -150,11 +147,11 @@ const Hero = () => {
           <div className="mx-auto mt-7 h-px w-28 bg-gradient-to-r from-transparent via-white/35 to-transparent" />
         </RevealText>
 
-        <RevealText delay={0.46} className="mt-8 flex items-center">
+        <RevealText delay={0.46} className="mt-7 flex items-center">
           <a
             href="#ramas"
             aria-label="Explorar áreas"
-            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-white/90 backdrop-blur-md transition duration-300 hover:border-white/25 hover:bg-white/10 hover:shadow-[0_0_30px_rgba(152,245,225,0.18)] sm:px-7 sm:text-[15px]"
+            className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition duration-300 hover:border-white/25 hover:bg-white/10 hover:shadow-[0_0_26px_rgba(152,245,225,0.18)] sm:px-6 sm:text-[14px]"
           >
             Explorar las 3 áreas
             <span
@@ -166,16 +163,6 @@ const Hero = () => {
           </a>
         </RevealText>
       </motion.div>
-
-      {/* Flecha */}
-      <motion.a
-        href="#ramas"
-        aria-label="Ir a la sección Ramas"
-        className="absolute bottom-8 left-1/2 z-30 -translate-x-1/2 text-2xl text-mint"
-        style={{ opacity: arrowOpacity, y: arrowY }}
-      >
-        <span aria-hidden="true">⌄</span>
-      </motion.a>
     </section>
   );
 };

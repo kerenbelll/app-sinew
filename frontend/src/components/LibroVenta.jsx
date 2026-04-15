@@ -190,29 +190,26 @@ export default function LibroVenta() {
 
                 <div className="2xl:col-span-4">
                   <div className="rounded-[26px] border border-white/10 bg-white/[0.035] p-5 md:p-6">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">
-                      Disponible ahora
-                    </p>
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">
+                   Disponible ahora
+                  </p>
 
-                    <p className="mt-4 text-2xl md:text-3xl font-semibold text-white">
-                      Precio: 12900 AR
+                  <p className="mt-3 text-[20px] md:text-[24px] font-semibold text-white">
+                   ARS 12.900
                     </p>
 
                     <div className="mt-6 grid grid-cols-1 gap-3">
-                      <GlassPrimaryButton
-                        to="/checkout"
-                        ariaLabel="Comprar ahora"
-                      >
-                        Comprar ahora
-                      </GlassPrimaryButton>
+  <GlassPrimaryButton
+    to="/checkout"
+    ariaLabel="Continuar a la compra"
+  >
+    Continuar a la compra
+  </GlassPrimaryButton>
 
-                      <GlassButton
-                        to="/login"
-                        ariaLabel="Iniciar sesión"
-                      >
-                        Iniciar sesión
-                      </GlassButton>
-                    </div>
+  <p className="text-[12px] leading-5 text-white/50 text-center">
+  Podrás ingresar o crear tu cuenta en el siguiente paso.
+</p>
+</div>
 
                     <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-white/15 to-transparent" />
 

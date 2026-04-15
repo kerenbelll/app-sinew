@@ -1,19 +1,28 @@
-// backend/routes/authRoutes.js
-import express from 'express';
-import { registerUser, loginUser, getProfile } from '../controllers/authController.js';
-import auth from '../middleware/auth.js';
+import express from "express";
+import auth from "../middleware/auth.js";
+import {
+  registerUser,
+  loginUser,
+  getProfile,
+  updateProfile,
+  changePassword,
+} from "../controllers/authController.js";
 
 const router = express.Router();
 
-/**
- * Rutas de autenticación y perfil.
- * Se montan en /api (ver index.js):
- *   POST   /api/users/register
- *   POST   /api/users/login
- *   GET    /api/users/profile   (protegida)
- */
-router.post('/users/register', registerUser);
-router.post('/users/login', loginUser);
-router.get('/users/profile', auth, getProfile);
+/*
+  Se montan en /api
+  POST   /api/users/register
+  POST   /api/users/login
+  GET    /api/users/profile
+  PATCH  /api/users/profile
+  PATCH  /api/users/password
+*/
+
+router.post("/users/register", registerUser);
+router.post("/users/login", loginUser);
+router.get("/users/profile", auth, getProfile);
+router.patch("/users/profile", auth, updateProfile);
+router.patch("/users/password", auth, changePassword);
 
 export default router;

@@ -138,19 +138,16 @@ const Ramas = () => {
       id="ramas"
       className="relative min-h-screen overflow-hidden bg-gradient-to-br from-[#0d1b2a] via-[#1b263b] to-[#415a77] text-white px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-20 md:py-24 xl:py-28 flex items-center"
     >
-      {/* Partículas más discretas y detrás del contenido */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-28">
         <FondoParticulas />
       </div>
 
-      {/* Glows exteriores suaves */}
       <div className="pointer-events-none absolute inset-0 z-0">
         <div className="absolute top-[-8rem] left-1/2 -translate-x-1/2 h-[28rem] w-[28rem] rounded-full bg-mint/8 blur-3xl" />
         <div className="absolute bottom-[-6rem] right-[8%] h-[22rem] w-[22rem] rounded-full bg-white/4 blur-3xl" />
         <div className="absolute bottom-[10%] left-[6%] h-[18rem] w-[18rem] rounded-full bg-mint/8 blur-3xl" />
       </div>
 
-      {/* Overlay sutil para “matar” un poco más el fondo detrás de las cards */}
       <div className="pointer-events-none absolute inset-0 z-[1] bg-black/10" />
 
       <div className="relative z-20 w-full max-w-[1800px] mx-auto">
@@ -161,7 +158,7 @@ const Ramas = () => {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 xl:gap-10 2xl:gap-12 items-stretch">
           <div data-aos="fade-up" className="flex">
             <RamaCard
-              to="/synergy"
+              to="/cursos"
               logo={synergyLogo}
               logoAlt="Synergy"
               title="Formación Bíblica Integral"
@@ -189,7 +186,7 @@ const Ramas = () => {
 
           <div data-aos="fade-up" data-aos-delay="200" className="flex">
             <RamaCard
-              to="/corp"
+              to="/red-sinew"
               logo={corpLogo}
               logoAlt="Corp"
               title="Networking y Proyectos"

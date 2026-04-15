@@ -23,6 +23,58 @@ function normalizeType(value) {
   return "course";
 }
 
+function MethodCard({
+  active,
+  title,
+  subtitle,
+  badge,
+  onClick,
+  children,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "w-full rounded-2xl border p-4 text-left transition duration-300",
+        active
+          ? "border-mint/40 bg-mint/10 shadow-[0_0_24px_rgba(152,245,225,0.14)]"
+          : "border-white/10 bg-white/[0.04] hover:bg-white/[0.07] hover:border-white/20",
+      ].join(" ")}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[15px] font-semibold text-white">{title}</p>
+          <p className="mt-1 text-sm leading-6 text-white/62">{subtitle}</p>
+        </div>
+
+        {badge ? (
+          <span
+            className={[
+              "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide",
+              active
+                ? "bg-mint text-black"
+                : "border border-white/12 bg-white/[0.05] text-white/75",
+            ].join(" ")}
+          >
+            {badge}
+          </span>
+        ) : null}
+      </div>
+
+      {children ? <div className="mt-3">{children}</div> : null}
+    </button>
+  );
+}
+
+function SectionTitle({ children }) {
+  return (
+    <h2 className="text-[15px] font-semibold tracking-tight text-white">
+      {children}
+    </h2>
+  );
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -64,7 +116,7 @@ export default function Checkout() {
   const [formData, setFormData] = useState({
     nombre: "",
     email: "",
-    metodoPago: "paypal",
+    metodoPago: "mp",
   });
 
   const isEmailValid = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -81,7 +133,16 @@ export default function Checkout() {
     [clientId]
   );
 
-  const buttonStyle = useMemo(() => ({ layout: "vertical" }), []);
+  const buttonStyle = useMemo(
+    () => ({
+      layout: "vertical",
+      shape: "pill",
+      label: "pay",
+      tagline: false,
+      height: 42,
+    }),
+    []
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -98,7 +159,6 @@ export default function Checkout() {
 
         const normalized = Array.isArray(data) ? data : [];
 
-        // Solo recursos pagos, tanto cursos como masterclasses
         const paidResources = normalized.filter((item) => {
           const kind = String(item.kind || "").toLowerCase();
           const level = String(item.level || "").toLowerCase();
@@ -139,7 +199,7 @@ export default function Checkout() {
     return () => {
       mounted = false;
     };
-  }, [API_BASE, requestedResourceSlug]);
+  }, [API_BASE, requestedResourceSlug, resourceSlug]);
 
   const filteredResources = useMemo(() => {
     if (productType === "course") {
@@ -261,273 +321,349 @@ export default function Checkout() {
 
   const productLabel =
     productType === "book"
-      ? `Libro (USD ${PRICE_USD_BOOK})`
+      ? "Libro digital"
       : selectedResource
-      ? `${selectedResource.title} (USD ${currentUSD})`
+      ? selectedResource.title
       : productType === "masterclass"
       ? "Masterclass"
       : "Curso";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0d1b2a] via-[#1b263b] to-[#415a77] text-white flex items-center justify-center px-4 py-20">
-      <div className="w-full max-w-xl bg-[#0b1222]/70 backdrop-blur border border-white/10 shadow-2xl p-8 rounded-2xl space-y-8">
-        <header className="text-center space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight">Finalizar compra</h2>
-          <p className="text-white/70 text-sm">
-            Completá tus datos y elegí tu método de pago.
+    <div className="min-h-screen bg-[#08101f] text-white px-4 py-10 sm:px-6 md:py-14">
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-8 text-center">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-white/45">
+            Checkout
           </p>
-        </header>
-
-        <div className="grid grid-cols-1 gap-4">
-          <label className="block">
-            <span className="block text-sm text-white/70 mb-1">Producto</span>
-            <select
-              value={productType}
-              onChange={(e) => {
-                const nextType = normalizeType(e.target.value);
-                setProductType(nextType);
-                setErrorMsg("");
-              }}
-              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
-            >
-              <option className="bg-[#0b1222]" value="book">
-                Libro (USD {PRICE_USD_BOOK})
-              </option>
-              <option className="bg-[#0b1222]" value="course">
-                Curso
-              </option>
-              <option className="bg-[#0b1222]" value="masterclass">
-                Masterclass
-              </option>
-            </select>
-          </label>
-
-          {productType !== "book" && (
-            <label className="block">
-              <span className="block text-sm text-white/70 mb-1">
-                Seleccioná el {productType === "masterclass" ? "recurso" : "curso"}
-              </span>
-              <select
-                value={resourceSlug}
-                onChange={(e) => {
-                  setResourceSlug(e.target.value);
-                  setErrorMsg("");
-                }}
-                disabled={resourcesLoading || filteredResources.length === 0}
-                className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white disabled:opacity-60"
-              >
-                {resourcesLoading ? (
-                  <option className="bg-[#0b1222]" value="">
-                    Cargando recursos...
-                  </option>
-                ) : filteredResources.length === 0 ? (
-                  <option className="bg-[#0b1222]" value="">
-                    No hay recursos pagos disponibles
-                  </option>
-                ) : (
-                  filteredResources.map((r) => (
-                    <option
-                      key={r.slug}
-                      className="bg-[#0b1222]"
-                      value={r.slug}
-                    >
-                      {r.title} (USD {Number(r.price).toFixed(2)})
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-          )}
+          <h1 className="mt-3 text-[clamp(28px,4vw,44px)] font-semibold tracking-tight">
+            Finalizar compra
+          </h1>
+          <p className="mt-3 max-w-2xl mx-auto text-sm leading-6 text-white/64 sm:text-[15px]">
+            Elegí tu recurso, completá tus datos y pagá en pesos o en dólares.
+          </p>
         </div>
 
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/75">
-          <div className="flex items-center justify-between gap-4">
-            <span>Producto seleccionado</span>
-            <span className="font-medium text-white">{productLabel}</span>
-          </div>
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 sm:p-6 md:p-7">
+            <div className="grid gap-6">
+              <div>
+                <SectionTitle>Producto</SectionTitle>
 
-          {formData.metodoPago === "mp" && (
-            <div className="mt-2 flex items-center justify-between gap-4">
-              <span>Precio en ARS</span>
-              <span className="font-medium text-white">
-                ARS {Intl.NumberFormat("es-AR").format(currentARS)}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <label className="block">
-            <span className="block text-sm text-white/70 mb-1">
-              Nombre completo
-            </span>
-            <input
-              name="nombre"
-              value={formData.nombre}
-              onChange={handleChange}
-              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
-            />
-          </label>
-
-          <label className="block">
-            <span className="block text-sm text-white/70 mb-1">
-              Correo electrónico
-            </span>
-            <input
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
-            />
-          </label>
-
-          <label className="block">
-            <span className="block text-sm text-white/70 mb-1">
-              Método de pago
-            </span>
-            <select
-              name="metodoPago"
-              value={formData.metodoPago}
-              onChange={handleChange}
-              className="w-full p-3 bg-white/5 border border-white/10 rounded-xl text-white"
-            >
-              <option className="bg-[#0b1222]" value="paypal">
-                PayPal (USD {currentUSD})
-              </option>
-              <option className="bg-[#0b1222]" value="mp">
-                Mercado Pago (ARS {Intl.NumberFormat("es-AR").format(currentARS)})
-              </option>
-            </select>
-          </label>
-        </div>
-
-        {errorMsg && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-400/30 text-red-200 text-sm whitespace-pre-wrap">
-            {errorMsg}
-          </div>
-        )}
-
-        {formData.metodoPago === "paypal" && clientId && (
-          <PayPalScriptProvider options={paypalOptions}>
-            <div className="rounded-xl border border-white/10 p-4 bg-white/5">
-              <PayPalButtons
-                style={buttonStyle}
-                onClick={(data, actions) =>
-                  !requireLoginAndForm()
-                    ? actions.reject()
-                    : actions.resolve()
-                }
-                createOrder={async () => {
-                  const isBook = productType === "book";
-
-                  const payload = {
-                    items: [
-                      {
-                        type: isBook ? "book" : productType,
-                        sku: isBook ? "libro-001" : selectedResource?.slug,
-                        name: currentTitle,
-                        quantity: 1,
-                        unit_amount: parseFloat(currentUSD),
-                        currency: "USD",
-                      },
-                    ],
-                    meta: isBook
-                      ? {
-                          buyerEmail: formData.email,
-                          type: "book",
-                        }
-                      : {
-                          buyerEmail: formData.email,
-                          courseSlug: selectedResource?.slug,
-                          slug: selectedResource?.slug,
-                          type: productType,
-                          kind: selectedResource?.kind,
-                        },
-                  };
-
-                  const { data } = await axios.post(
-                    `${API_BASE}/api/paypal/create-order`,
-                    payload,
-                    {
-                      headers: token
-                        ? { Authorization: `Bearer ${token}` }
-                        : undefined,
-                    }
-                  );
-
-                  return data.id;
-                }}
-                onApprove={async ({ orderID }) => {
-                  try {
-                    const isBook = productType === "book";
-
-                    const body = {
-                      orderID,
-                      email: formData.email,
-                      name: formData.nombre,
-                      ...(isBook
-                        ? {}
-                        : {
-                            courseSlug: selectedResource?.slug,
-                            type: productType,
-                          }),
-                    };
-
-                    const res = await axios.post(
-                      `${API_BASE}/api/paypal/capture-order`,
-                      body,
-                      { headers: { Authorization: `Bearer ${token}` } }
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  {[
+                    { value: "book", label: "E-book" },
+                    { value: "course", label: "Curso" },
+                    { value: "masterclass", label: "Masterclass" },
+                  ].map((item) => {
+                    const active = productType === item.value;
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        onClick={() => {
+                          setProductType(item.value);
+                          setErrorMsg("");
+                        }}
+                        className={[
+                          "rounded-2xl border px-4 py-3 text-sm font-medium transition",
+                          active
+                            ? "border-mint/40 bg-mint/10 text-mint"
+                            : "border-white/10 bg-white/[0.03] text-white/78 hover:bg-white/[0.06]",
+                        ].join(" ")}
+                      >
+                        {item.label}
+                      </button>
                     );
+                  })}
+                </div>
+              </div>
 
-                    const redirectTo = res.data?.redirectTo || null;
-                    const downloadLink = res.data?.redirectTo
-                      ? null
-                      : res.data?.downloadLink || null;
-                    const payerName = formData.nombre;
+              {productType !== "book" && (
+                <div>
+                  <SectionTitle>
+                    {productType === "masterclass" ? "Seleccioná la masterclass" : "Seleccioná el curso"}
+                  </SectionTitle>
 
-                    if (redirectTo) {
-                      window.location.replace(redirectTo);
-                    } else {
-                      navigate("/gracias", {
-                        replace: true,
-                        state: { downloadLink, payerName },
-                      });
-                    }
-                  } catch (err) {
-                    const msg =
-                      err?.response?.data?.error ||
-                      err?.message ||
-                      "Error capturando pago";
-                    setErrorMsg(msg);
-                  }
-                }}
-                onError={(err) =>
-                  setErrorMsg(err?.message || "Error con PayPal")
-                }
-              />
+                  <div className="mt-4">
+                    <select
+                      value={resourceSlug}
+                      onChange={(e) => {
+                        setResourceSlug(e.target.value);
+                        setErrorMsg("");
+                      }}
+                      disabled={resourcesLoading || filteredResources.length === 0}
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition disabled:opacity-60"
+                    >
+                      {resourcesLoading ? (
+                        <option className="bg-[#0b1222]" value="">
+                          Cargando recursos...
+                        </option>
+                      ) : filteredResources.length === 0 ? (
+                        <option className="bg-[#0b1222]" value="">
+                          No hay recursos pagos disponibles
+                        </option>
+                      ) : (
+                        filteredResources.map((r) => (
+                          <option key={r.slug} className="bg-[#0b1222]" value={r.slug}>
+                            {r.title} (USD {Number(r.price).toFixed(2)})
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <SectionTitle>Datos de compra</SectionTitle>
+
+                <div className="mt-4 grid gap-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm text-white/65">
+                      Nombre completo
+                    </label>
+                    <input
+                      name="nombre"
+                      value={formData.nombre}
+                      onChange={handleChange}
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-white/20"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-sm text-white/65">
+                      Correo electrónico
+                    </label>
+                    <input
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white outline-none transition placeholder:text-white/25 focus:border-white/20"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <SectionTitle>Método de pago</SectionTitle>
+
+                <div className="mt-4 grid gap-3">
+                  <MethodCard
+                    active={formData.metodoPago === "mp"}
+                    title="Mercado Pago"
+                    subtitle="Pagar en pesos argentinos."
+                    badge="Recomendado"
+                    onClick={() => setFormData((prev) => ({ ...prev, metodoPago: "mp" }))}
+                  >
+                    <p className="text-sm font-medium text-white/82">
+                      ARS {Intl.NumberFormat("es-AR").format(currentARS)}
+                    </p>
+                  </MethodCard>
+
+                  <MethodCard
+                    active={formData.metodoPago === "paypal"}
+                    title="PayPal"
+                    subtitle="Pagar en dólares con tarjeta o cuenta PayPal."
+                    badge="USD"
+                    onClick={() => setFormData((prev) => ({ ...prev, metodoPago: "paypal" }))}
+                  >
+                    <p className="text-sm font-medium text-white/82">
+                      USD {currentUSD}
+                    </p>
+                  </MethodCard>
+                </div>
+              </div>
+
+              {errorMsg && (
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 text-sm text-red-200 whitespace-pre-wrap">
+                  {errorMsg}
+                </div>
+              )}
+
+              {formData.metodoPago === "mp" && (
+                <button
+                  type="button"
+                  onClick={handleMercadoPago}
+                  disabled={mpLoading || (productType !== "book" && !selectedResource)}
+                  className={`inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border border-mint/30 bg-mint/12 px-5 py-3 text-sm font-medium text-mint transition hover:bg-mint hover:text-[#0d1b2a] ${
+                    mpLoading || (productType !== "book" && !selectedResource)
+                      ? "cursor-not-allowed opacity-70"
+                      : ""
+                  }`}
+                >
+                  {mpLoading
+                    ? "Redirigiendo a Mercado Pago…"
+                    : `Pagar en pesos argentinos`}
+                </button>
+              )}
+
+              {formData.metodoPago === "paypal" && clientId && (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-white">Pagar con PayPal</p>
+                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-[11px] text-white/65">
+                      USD {currentUSD}
+                    </span>
+                  </div>
+
+                  <div className="paypal-clean">
+                    <PayPalScriptProvider options={paypalOptions}>
+                      <PayPalButtons
+                        style={buttonStyle}
+                        onClick={(data, actions) =>
+                          !requireLoginAndForm()
+                            ? actions.reject()
+                            : actions.resolve()
+                        }
+                        createOrder={async () => {
+                          const isBook = productType === "book";
+
+                          const payload = {
+                            items: [
+                              {
+                                type: isBook ? "book" : productType,
+                                sku: isBook ? "libro-001" : selectedResource?.slug,
+                                name: currentTitle,
+                                quantity: 1,
+                                unit_amount: parseFloat(currentUSD),
+                                currency: "USD",
+                              },
+                            ],
+                            meta: isBook
+                              ? {
+                                  buyerEmail: formData.email,
+                                  type: "book",
+                                }
+                              : {
+                                  buyerEmail: formData.email,
+                                  courseSlug: selectedResource?.slug,
+                                  slug: selectedResource?.slug,
+                                  type: productType,
+                                  kind: selectedResource?.kind,
+                                },
+                          };
+
+                          const { data } = await axios.post(
+                            `${API_BASE}/api/paypal/create-order`,
+                            payload,
+                            {
+                              headers: token
+                                ? { Authorization: `Bearer ${token}` }
+                                : undefined,
+                            }
+                          );
+
+                          return data.id;
+                        }}
+                        onApprove={async ({ orderID }) => {
+                          try {
+                            const isBook = productType === "book";
+
+                            const body = {
+                              orderID,
+                              email: formData.email,
+                              name: formData.nombre,
+                              ...(isBook
+                                ? {}
+                                : {
+                                    courseSlug: selectedResource?.slug,
+                                    type: productType,
+                                  }),
+                            };
+
+                            const res = await axios.post(
+                              `${API_BASE}/api/paypal/capture-order`,
+                              body,
+                              { headers: { Authorization: `Bearer ${token}` } }
+                            );
+
+                            const redirectTo = res.data?.redirectTo || null;
+                            const downloadLink = res.data?.redirectTo
+                              ? null
+                              : res.data?.downloadLink || null;
+                            const payerName = formData.nombre;
+
+                            if (redirectTo) {
+                              window.location.replace(redirectTo);
+                            } else {
+                              navigate("/gracias", {
+                                replace: true,
+                                state: { downloadLink, payerName },
+                              });
+                            }
+                          } catch (err) {
+                            const msg =
+                              err?.response?.data?.error ||
+                              err?.message ||
+                              "Error capturando pago";
+                            setErrorMsg(msg);
+                          }
+                        }}
+                        onError={(err) =>
+                          setErrorMsg(err?.message || "Error con PayPal")
+                        }
+                      />
+                    </PayPalScriptProvider>
+                  </div>
+                </div>
+              )}
             </div>
-          </PayPalScriptProvider>
-        )}
+          </div>
 
-        {formData.metodoPago === "mp" && (
-          <button
-            type="button"
-            onClick={handleMercadoPago}
-            disabled={mpLoading || (productType !== "book" && !selectedResource)}
-            className={`w-full px-4 py-3 rounded-xl font-medium border border-mint text-mint hover:bg-mint hover:text-[#0d1b2a] transition ${
-              mpLoading || (productType !== "book" && !selectedResource)
-                ? "opacity-70 cursor-not-allowed"
-                : ""
-            }`}
-          >
-            {mpLoading
-              ? "Redirigiendo a Mercado Pago…"
-              : `Pagar con Mercado Pago (ARS ${Intl.NumberFormat("es-AR").format(
-                  currentARS
-                )})`}
-          </button>
-        )}
+          <aside className="rounded-[28px] border border-white/10 bg-white/[0.04] backdrop-blur-xl p-5 sm:p-6 md:p-7 h-fit">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-white/45">
+              Resumen
+            </p>
+
+            <h2 className="mt-3 text-[22px] font-semibold tracking-tight text-white">
+              {productLabel}
+            </h2>
+
+            <div className="mt-5 space-y-3 rounded-2xl border border-white/10 bg-[#0b1222]/55 p-4">
+              <div className="flex items-center justify-between gap-3 text-sm text-white/65">
+                <span>Tipo</span>
+                <span className="text-white/88">
+                  {productType === "book"
+                    ? "Libro"
+                    : productType === "masterclass"
+                    ? "Masterclass"
+                    : "Curso"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 text-sm text-white/65">
+                <span>Precio en ARS</span>
+                <span className="text-white/88">
+                  ARS {Intl.NumberFormat("es-AR").format(currentARS)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 text-sm text-white/65">
+                <span>Precio en USD</span>
+                <span className="text-white/88">USD {currentUSD}</span>
+              </div>
+
+              <div className="h-px bg-white/10" />
+
+              <div className="flex items-center justify-between gap-3 text-sm font-medium text-white">
+                <span>Total</span>
+                <span>
+                  {formData.metodoPago === "mp"
+                    ? `ARS ${Intl.NumberFormat("es-AR").format(currentARS)}`
+                    : `USD ${currentUSD}`}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-sm leading-6 text-white/64">
+                Recomendamos pagar en <span className="text-white font-medium">pesos argentinos</span> si estás en Argentina.
+                También podés elegir <span className="text-white font-medium">PayPal en USD</span> si preferís operar en dólares.
+              </p>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );

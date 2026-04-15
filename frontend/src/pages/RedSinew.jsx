@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import FondoParticulas from "../components/FondoParticulas";
-import logoA1 from "../assets/img/A1.png";
+import corpLogo from "../assets/img/corplogocolor.png";
 
 function SectionEyebrow({ children, className = "" }) {
   return (
@@ -42,8 +42,7 @@ export default function RedSinew() {
         <FondoParticulas opacity={0.1} />
       </div>
 
-      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 pt-8 md:pt-12 pb-20 md:pb-28">
-        {/* HERO */}
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 pt-12 md:pt-16 pb-20 md:pb-28">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -54,20 +53,22 @@ export default function RedSinew() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(152,245,225,0.08),transparent_30%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_30%,transparent_70%,rgba(255,255,255,0.015))]" />
 
-            <div className="relative z-10 flex items-center justify-center px-5 sm:px-8 md:px-10 xl:px-16 2xl:px-24 py-12 sm:py-14 md:py-18 xl:py-24 2xl:py-28">
-              <div className="w-full max-w-[1450px] text-center">
-                <motion.img
-                  src={logoA1}
-                  alt="SINEW"
-                  initial={{ opacity: 0, y: 14, scale: 0.985 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.85, delay: 0.16 }}
-                  className="mx-auto w-[clamp(130px,14vw,250px)] h-auto select-none drop-shadow-[0_0_26px_rgba(152,245,225,0.16)]"
-                  loading="eager"
-                  decoding="async"
-                />
+            <div className="relative z-10 flex items-center justify-center px-5 sm:px-8 md:px-10 xl:px-16 2xl:px-24 py-14 sm:py-16 md:py-20 xl:py-24 2xl:py-28">
+              <div className="w-full max-w-[1200px] text-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.08 }}
+                  className="mb-6 md:mb-7 flex justify-center"
+                >
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/60 backdrop-blur-sm shadow-[0_0_24px_rgba(152,245,225,0.08)]">
+                    Área Corp
+                  </span>
+                </motion.div>
 
-                <SectionEyebrow className="mt-6 md:mt-8">Red SINEW</SectionEyebrow>
+              
+
+                <SectionEyebrow className="mt-7 md:mt-8">Red SINEW</SectionEyebrow>
 
                 <motion.h1
                   initial={{ opacity: 0, y: 14 }}
@@ -116,7 +117,6 @@ export default function RedSinew() {
           </div>
         </motion.div>
 
-        {/* CONTENIDO */}
         <motion.div
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
@@ -124,7 +124,6 @@ export default function RedSinew() {
           className="mx-auto w-full max-w-[1920px]"
         >
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(340px,0.9fr)_minmax(900px,1.7fr)] gap-10 xl:gap-20 2xl:gap-28 items-start">
-            {/* Columna izquierda */}
             <div className="xl:pt-2">
               <div className="xl:sticky xl:top-28 max-w-[560px]">
                 <SectionEyebrow>Qué es la red</SectionEyebrow>
@@ -146,7 +145,6 @@ export default function RedSinew() {
               </div>
             </div>
 
-            {/* Columna derecha */}
             <div className="min-w-0">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 xl:gap-7">
                 <InfoBlock

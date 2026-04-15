@@ -74,6 +74,9 @@ import purchaseRoutes from './routes/purchaseRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import mercadoPagoRoutes from './routes/mercadoPagoRoutes.js';
 import courseRoutes from './routes/courseRoutes.js';
+import redNetworkRoutes from "./routes/redNetworkRoutes.js";
+
+app.use("/api/red-network", redNetworkRoutes);
 
 // Montaje seguro
 function safeUse(prefix, router, label) {

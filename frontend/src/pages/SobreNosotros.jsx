@@ -93,9 +93,9 @@ export default function SobreNosotros() {
 
   return (
     <section className="relative min-h-screen overflow-hidden bg-[#060b14] text-white">
-  <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0b1222] to-transparent z-0" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0b1222] to-transparent z-0" />
 
-  <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-[32%] -left-20 h-[24rem] w-[24rem] rounded-full bg-white opacity-[0.04] blur-3xl" />
         <div className="absolute bottom-0 right-0 h-[30rem] w-[30rem] rounded-full bg-[#98f5e1] opacity-[0.07] blur-3xl" />
         <div className="absolute top-[58%] left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-[#98f5e1] opacity-[0.05] blur-3xl" />
@@ -340,7 +340,7 @@ export default function SobreNosotros() {
 
             <div className="mt-16 md:mt-18 xl:mt-20 grid grid-cols-1 md:grid-cols-3 gap-14 md:gap-10 xl:gap-20 2xl:gap-24 items-start">
               <AreaLogoLink
-                to="/synergy"
+                to="/cursos"
                 logo={synergyLogo}
                 alt="Synergy"
                 name="Synergy"
@@ -356,7 +356,7 @@ export default function SobreNosotros() {
               />
 
               <AreaLogoLink
-                to="/corp"
+                to="/red-sinew"
                 logo={corpLogo}
                 alt="Corp"
                 name="Corp"

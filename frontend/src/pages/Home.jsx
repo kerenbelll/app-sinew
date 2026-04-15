@@ -103,7 +103,7 @@ export default function Home() {
                 <div className="max-w-xl">
                   <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/72">
                     <span className="h-2 w-2 rounded-full bg-mint" />
-                    Recurso gratuito
+                    Curso gratuito
                   </div>
 
                   <h2 className="mt-5 text-[clamp(28px,3.1vw,48px)] font-semibold tracking-tight leading-[0.95]">
@@ -114,38 +114,19 @@ export default function Home() {
                   </h2>
 
                   <p className="mt-5 text-white/68 text-[15px] md:text-[17px] leading-7 md:leading-8">
-                    Mirá la introducción gratuita del curso y conocé su enfoque, su profundidad y el punto de partida de este recorrido.
-                  </p>
+                     Accedé a este curso de forma totalmente gratuita. ¡Es un gran punto de partida para tu recorrido en Sinew!                  </p>
 
-                  <div className="mt-7 space-y-3 text-sm md:text-[15px] text-white/74">
-                    <div className="flex items-start gap-3">
-                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mint/85" />
-                      <p>Acceso inicial al contenido gratuito.</p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mint/85" />
-                      <p>Una primera mirada del curso.</p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-mint/85" />
-                      <p>Ideal para comenzar el recorrido en Sinew.</p>
-                    </div>
-                  </div>
+                  
 
                   <div className="mt-8 flex flex-wrap gap-3">
                     <Link
-                      to="/recursos/comunicacion"
+                      to="/cursos/comunicacion"
                       className="inline-flex items-center justify-center rounded-full border border-mint/30 bg-mint/12 px-6 py-3 text-sm md:text-base text-mint hover:bg-mint hover:text-black transition-all duration-300 shadow-[0_0_24px_rgba(152,245,225,0.18)]"
                     >
-                      Ver recurso
+                      Ver curso
                     </Link>
 
-                    <a
-                      href="#libro"
-                      className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/5 px-6 py-3 text-sm md:text-base text-white/84 hover:bg-white/10 transition-all duration-300"
-                    >
-                      Seguir explorando
-                    </a>
+                   
                   </div>
                 </div>
               </div>
@@ -156,7 +137,7 @@ export default function Home() {
                   <div className="absolute top-4 left-4 z-20">
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/35 backdrop-blur-md px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/78">
                       <span className="h-2 w-2 rounded-full bg-mint/85" />
-                      Introducción gratuita
+                      Introducción
                     </span>
                   </div>
 

@@ -13,6 +13,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import WhatsAppFloat from "./components/WhatsAppFloat";
+import EbookPrompt from "./components/EbookPrompt";
 
 import Home from "./pages/Home";
 import Cursos from "./pages/Cursos";
@@ -26,7 +27,6 @@ import UnirmeRed from "./pages/UnirmeRed";
 import SynergyPage from "./pages/SynergyPage";
 import XTalentPage from "./pages/XTalentPage";
 import CorpPage from "./pages/CorpPage";
-import EbookPrompt from "./components/EbookPrompt";
 
 import Ramas from "./components/Ramas";
 
@@ -59,16 +59,137 @@ function ProtectedRoute({ children }) {
   const location = useLocation();
 
   if (loading) return <FullScreenLoader />;
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
   return children;
 }
 
 /* ===== Rutas públicas exclusivas (login/register) ===== */
 function PublicOnlyRoute({ children, to = "/perfil" }) {
   const { user, loading } = useUser();
+
   if (loading) return <FullScreenLoader />;
   if (user) return <Navigate to={to} replace />;
+
   return children;
+}
+
+/* ===== Layout dinámico ===== */
+function AppShell() {
+  const location = useLocation();
+
+  const hideChromeRoutes = [
+    "/login",
+    "/register",
+  ];
+
+  const hidePromptRoutes = [
+    "/login",
+    "/register",
+    "/perfil",
+    "/ajustes",
+    "/checkout",
+  ];
+
+  const hideFooterRoutes = [];
+
+  const hideWhatsAppRoutes = [
+    "/checkout",
+  ];
+
+  const hideNavbar = hideChromeRoutes.includes(location.pathname);
+  const hideFooter = hideFooterRoutes.includes(location.pathname);
+  const hidePrompt = hidePromptRoutes.includes(location.pathname);
+  const hideWhatsApp = hideWhatsAppRoutes.includes(location.pathname);
+
+  return (
+    <>
+      {!hideNavbar && <Navbar />}
+      <ScrollToTop behavior="instant" />
+
+      <Routes>
+        {/* Públicas */}
+        <Route path="/" element={<Home />} />
+        <Route path="/ramas" element={<Ramas />} />
+        <Route path="/sobre-nosotros" element={<SobreNosotros />} />
+        <Route path="/comunidad" element={<Comunidad />} />
+        <Route path="/cursos" element={<Cursos />} />
+        <Route path="/cursos/:slug" element={<CursoDetalle />} />
+        <Route path="/red-sinew" element={<RedSinew />} />
+        <Route path="/contacto" element={<Contacto />} />
+
+        {/* Páginas informativas */}
+        <Route path="/synergy" element={<SynergyPage />} />
+        <Route path="/xtalent" element={<XTalentPage />} />
+        <Route path="/corp" element={<CorpPage />} />
+        <Route path="/unirme-red" element={<UnirmeRed />} />
+
+        {/* Auth: si ya está logueado, no mostrar login/register */}
+        <Route
+          path="/login"
+          element={
+            <PublicOnlyRoute to="/perfil">
+              <Login />
+            </PublicOnlyRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <PublicOnlyRoute to="/perfil">
+              <Register />
+            </PublicOnlyRoute>
+          }
+        />
+
+        {/* Protegidas */}
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <Checkout />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/perfil"
+          element={
+            <ProtectedRoute>
+              <Perfil />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ajustes"
+          element={
+            <ProtectedRoute>
+              <Ajustes />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Alias */}
+        <Route path="/mis-cursos" element={<Navigate to="/perfil" replace />} />
+
+        {/* Públicas con token */}
+        <Route path="/gracias" element={<Gracias />} />
+        <Route path="/download/:token" element={<Download />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {!hideWhatsApp && <WhatsAppFloat />}
+      {!hidePrompt && <EbookPrompt />}
+      {!hideFooter && <Footer />}
+    </>
+  );
 }
 
 /* ===== App ===== */
@@ -86,82 +207,7 @@ export default function App() {
     <div className="relative min-h-screen bg-white text-black">
       <UserProvider>
         <Router>
-          <Navbar />
-          <ScrollToTop behavior="instant" />
-
-          <Routes>
-            {/* Públicas */}
-            <Route path="/" element={<Home />} />
-            <Route path="/ramas" element={<Ramas />} />
-            <Route path="/sobre-nosotros" element={<SobreNosotros />} />
-            <Route path="/comunidad" element={<Comunidad />} />
-
-          {/* Catálogo */}
-            <Route path="/cursos" element={<Cursos />} />
-            <Route path="/cursos/:slug" element={<CursoDetalle />} />
-
-            <Route path="/red-sinew" element={<RedSinew />} />
-
-          
-            <Route path="/contacto" element={<Contacto />} />
-
-            {/* Páginas informativas */}
-            <Route path="/synergy" element={<SynergyPage />} />
-            <Route path="/xtalent" element={<XTalentPage />} />
-            <Route path="/corp" element={<CorpPage />} />
-            <Route path="/unirme-red" element={<UnirmeRed />} />
-
-            {/* Auth: si ya está logueado, NO mostrar estas páginas */}
-            <Route
-              path="/login"
-              element={
-                <PublicOnlyRoute to="/perfil">
-                  <Login />
-                </PublicOnlyRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicOnlyRoute to="/perfil">
-                  <Register />
-                </PublicOnlyRoute>
-              }
-            />
-            <Route path="/ajustes" element={<Ajustes />} />
-
-            {/* Protegidas */}
-            <Route
-              path="/checkout"
-              element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/perfil"
-              element={
-                <ProtectedRoute>
-                  <Perfil />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Alias opcional */}
-            <Route path="/mis-cursos" element={<Navigate to="/perfil" replace />} />
-
-            {/* Páginas con token en URL (no requieren login) */}
-            <Route path="/gracias" element={<Gracias />} />
-            <Route path="/download/:token" element={<Download />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
-
-            {/* Fallback 404 */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <WhatsAppFloat />
-          <EbookPrompt />
-          <Footer />
+          <AppShell />
         </Router>
       </UserProvider>
     </div>

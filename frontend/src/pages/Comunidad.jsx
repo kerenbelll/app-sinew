@@ -257,6 +257,14 @@ const PROOF_IMAGES = [
   { src: testimonio8, alt: "Mensaje real 4" },
 ];
 
+function SectionEyebrow({ children, className = "" }) {
+  return (
+    <p className={`text-[11px] uppercase tracking-[0.22em] text-white/42 ${className}`}>
+      {children}
+    </p>
+  );
+}
+
 function Card3D({ children, className = "" }) {
   const ref = useRef(null);
   const isTouch =
@@ -441,7 +449,6 @@ export default function Comunidad() {
   }, [showAllTestimonials]);
 
   const closeLightbox = () => setLightbox({ type: null, index: null });
-
   const openLightbox = (type, index) => setLightbox({ type, index });
 
   const prevImg = (e) => {
@@ -474,92 +481,183 @@ export default function Comunidad() {
   }, [lightbox.index, currentCollection.length]);
 
   return (
-    <section className="relative min-h-screen bg-black text-white overflow-hidden">
-      <FondoParticulas wrapperZ={1} blend="screen" className="opacity-80" />
+    <section className="relative min-h-screen overflow-hidden bg-[#060b14] text-white">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0b1222] to-transparent z-0" />
 
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 h-[52rem] w-[52rem] rounded-full bg-[#98f5e1] blur-3xl opacity-14" />
-        <div className="absolute -bottom-28 right-[10%] h-[34rem] w-[34rem] rounded-full bg-white blur-3xl opacity-7" />
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-[18%] left-[10%] h-[24rem] w-[24rem] rounded-full bg-white opacity-[0.035] blur-3xl" />
+        <div className="absolute -top-24 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-[#98f5e1] opacity-[0.08] blur-3xl" />
+        <div className="absolute bottom-[8%] right-[8%] h-[26rem] w-[26rem] rounded-full bg-[#98f5e1] opacity-[0.06] blur-3xl" />
       </div>
 
-      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 py-24 md:py-32">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[36%] opacity-15">
+        <FondoParticulas opacity={0.1} />
+      </div>
+
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-10 xl:px-14 2xl:px-20 pt-12 md:pt-16 pb-24 md:pb-32">
         <motion.div
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="mb-10 md:mb-12"
+          transition={{ duration: 0.55 }}
+          className="mx-auto w-full max-w-[1920px] mb-16 md:mb-24"
         >
-          <Card3D className="overflow-hidden">
-            <div className="grid grid-cols-1 xl:grid-cols-12">
-              <div className="xl:col-span-8 p-6 md:p-8 xl:p-10">
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-white/70">
-                  <span className="h-2 w-2 rounded-full bg-mint" />
-                  Comunidad
-                </div>
+          <div className="relative overflow-hidden rounded-[28px] md:rounded-[36px] border border-white/10 bg-white/[0.03] backdrop-blur-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(152,245,225,0.08),transparent_30%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),transparent_30%,transparent_70%,rgba(255,255,255,0.015))]" />
 
-                <h1 className="mt-5 text-[clamp(26px,3.8vw,52px)] font-semibold tracking-tight leading-[0.95]">
-                  Una comunidad que
-                  <span className="block bg-gradient-to-r from-[#98f5e1] via-white to-[#98f5e1] bg-clip-text text-transparent">
-                    crece
+            <div className="relative z-10 flex items-center justify-center px-5 sm:px-8 md:px-10 xl:px-16 2xl:px-24 py-14 sm:py-16 md:py-20 xl:py-24 2xl:py-28">
+              <div className="w-full max-w-[1200px] text-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.08 }}
+                  className="mb-6 md:mb-7 flex justify-center"
+                >
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] uppercase tracking-[0.18em] text-white/60 backdrop-blur-sm shadow-[0_0_24px_rgba(152,245,225,0.08)]">
+                     SINEW
                   </span>
-                </h1>
-              </div>
+                </motion.div>
 
-              <div className="xl:col-span-4 border-t xl:border-t-0 xl:border-l border-white/10 bg-white/[0.03] p-6 md:p-8 xl:p-10 flex items-center">
-                <div className="grid grid-cols-1 gap-4 w-full">
-                  <Link
-                    to="/red-sinew"
-                    className="group rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition"
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.28 }}
+                  className="mt-4 md:mt-5 text-[clamp(24px,4.8vw,68px)] font-semibold tracking-tight leading-[0.96] text-white"
+                >
+                  Una comunidad
+                  <span className="block bg-gradient-to-r from-[#98f5e1] via-white to-[#98f5e1] bg-clip-text text-transparent">
+                    que crece
+                  </span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.38 }}
+                  className="mt-5 md:mt-6 max-w-[980px] mx-auto text-[14px] sm:text-[15px] md:text-[18px] xl:text-[20px] leading-7 md:leading-8 xl:leading-9 text-white/70"
+                >
+                  Experiencias, testimonios y momentos compartidos en el recorrido de formación de SINEW.
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, scaleX: 0.7 }}
+                  animate={{ opacity: 1, scaleX: 1 }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  className="mx-auto mt-8 md:mt-10 h-px w-24 md:w-32 bg-gradient-to-r from-transparent via-white/28 to-transparent"
+                />
+
+                <motion.div
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.56 }}
+                  className="mt-8 md:mt-10 flex flex-wrap items-center justify-center gap-3"
+                >
+                  <a
+                    href="#galeria"
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-mint/30 bg-mint/12 px-6 py-3 text-sm md:text-base text-mint hover:bg-mint hover:text-black transition-all duration-300 shadow-[0_0_24px_rgba(152,245,225,0.16)]"
                   >
-                    <p className="text-white font-medium">Red Sinew</p>
-                    <p className="text-white/50 text-sm mt-1">
-                      Conexión · Comunidad
-                    </p>
-                    <span className="mt-3 inline-block text-mint text-sm group-hover:translate-x-1 transition">
-                      Explorar →
-                    </span>
-                  </Link>
+                    Ver galería
+                    <span aria-hidden="true">→</span>
+                  </a>
 
                   <Link
-                    to={user ? "/recursos" : "/login"}
-                    className="group rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition"
+                    to={user ? "/cursos" : "/login"}
+                    className="inline-flex items-center justify-center rounded-full border border-white/12 bg-white/[0.05] px-6 py-3 text-sm md:text-base text-white hover:bg-white/10 transition"
                   >
-                    <p className="text-white font-medium">Recursos</p>
-                    <p className="text-white/50 text-sm mt-1">
-                      Formación · Crecimiento
-                    </p>
-                    <span className="mt-3 inline-block text-mint text-sm group-hover:translate-x-1 transition">
-                      {user ? "Ver más →" : "Iniciar sesión →"}
-                    </span>
+                    {user ? "Explorar recursos" : "Iniciar sesión"}
                   </Link>
-
-                  <Link
-                    to="/contacto"
-                    className="group rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition"
-                  >
-                    <p className="text-white font-medium">Contacto</p>
-                    <span className="mt-3 inline-block text-mint text-sm group-hover:translate-x-1 transition">
-                      Escribínos →
-                    </span>
-                  </Link>
-                </div>
+                </motion.div>
               </div>
             </div>
-          </Card3D>
+          </div>
+        </motion.div>
+
+        <motion.div
+          id="opiniones"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.04 }}
+          className="mb-16 md:mb-24 scroll-mt-24"
+        >
+          <div className="mb-6 md:mb-8">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">
+              Lo que dicen los estudiantes
+            </p>
+            <p className="mt-2 max-w-3xl text-white/66 text-sm md:text-base leading-relaxed">
+              Testimonios de personas que ya vivieron la experiencia de formación.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5 xl:gap-6">
+            {visibleTestimonials.map((item) => (
+              <QuoteCard key={item.id} quote={item.quote} name={item.name} />
+            ))}
+          </div>
+
+          {TESTIMONIALS.length > initialTestimonials && (
+            <div className="mt-8 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowAllTestimonials((prev) => !prev)}
+                className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm sm:text-base text-white/90 backdrop-blur shadow-[0_0_25px_rgba(152,245,225,0.12)] transition duration-300 hover:bg-white/10 hover:border-white/25 hover:shadow-[0_0_35px_rgba(152,245,225,0.22)]"
+              >
+                {showAllTestimonials ? "Ver menos" : "Ver más"}
+                <span
+                  aria-hidden="true"
+                  className={`transition-transform duration-300 ${
+                    showAllTestimonials ? "rotate-90" : "translate-x-0.5"
+                  }`}
+                >
+                  →
+                </span>
+              </button>
+            </div>
+          )}
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.04 }}
+          transition={{ duration: 0.45, delay: 0.08 }}
           className="mb-16 md:mb-24"
+        >
+          <div className="mb-6 md:mb-8">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">
+              Mensajes reales
+            </p>
+            <p className="mt-2 max-w-3xl text-white/66 text-sm md:text-base leading-relaxed">
+              Algunas capturas originales se mantienen como respaldo visual de la
+              experiencia compartida por participantes.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 xl:gap-5">
+            {PROOF_IMAGES.map((item, index) => (
+              <ProofShot
+                key={item.alt}
+                item={item}
+                index={index}
+                onOpen={openLightbox}
+                className="h-[180px] sm:h-[220px] md:h-[250px] xl:h-[280px]"
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          id="galeria"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.12 }}
+          className="mb-16 md:mb-24 scroll-mt-24"
         >
           <div className="mb-6 md:mb-8">
             <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">
               Galería
             </p>
             <p className="mt-2 max-w-3xl text-white/66 text-sm md:text-base leading-relaxed">
-              Encuentros, espacios de formación y momentos compartidos en Sinew.
+              Encuentros, espacios de formación y momentos compartidos en SINEW.
             </p>
           </div>
 
@@ -603,78 +701,6 @@ export default function Comunidad() {
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.08 }}
-          className="mb-16 md:mb-24"
-        >
-          <div className="mb-6 md:mb-8">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">
-              Lo que dicen los estudiantes
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-6">
-            {visibleTestimonials.map((item) => (
-              <QuoteCard
-                key={item.id}
-                quote={item.quote}
-                name={item.name}
-              />
-            ))}
-          </div>
-
-          {TESTIMONIALS.length > initialTestimonials && (
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={() => setShowAllTestimonials((prev) => !prev)}
-                className="group inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm sm:text-base text-white/90 backdrop-blur shadow-[0_0_25px_rgba(152,245,225,0.12)] transition duration-300 hover:bg-white/10 hover:border-white/25 hover:shadow-[0_0_35px_rgba(152,245,225,0.22)]"
-              >
-                {showAllTestimonials ? "Ver menos" : "Ver más"}
-                <span
-                  aria-hidden="true"
-                  className={`transition-transform duration-300 ${
-                    showAllTestimonials ? "rotate-90" : "translate-x-0.5"
-                  }`}
-                >
-                  →
-                </span>
-              </button>
-            </div>
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.12 }}
-          className="mb-16 md:mb-24"
-        >
-          <div className="mb-6 md:mb-8">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/52">
-              Mensajes reales
-            </p>
-            <p className="mt-2 max-w-3xl text-white/66 text-sm md:text-base leading-relaxed">
-              Algunas capturas originales se mantienen como respaldo visual de la
-              experiencia compartida por participantes.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 xl:gap-5">
-            {PROOF_IMAGES.map((item, index) => (
-              <ProofShot
-                key={item.alt}
-                item={item}
-                index={index}
-                onOpen={openLightbox}
-                className="h-[180px] sm:h-[220px] md:h-[250px] xl:h-[280px]"
-              />
-            ))}
-          </div>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.16 }}
         >
           <Card3D className="p-8 md:p-10">
@@ -682,8 +708,8 @@ export default function Comunidad() {
               <div className="max-w-3xl">
                 <p className="text-white/68 leading-relaxed text-sm md:text-base">
                   Esta comunidad sigue creciendo. Próximamente vamos a sumar más
-                  experiencias, nuevos recursos y nuevas testimonios que ayuden a contar
-                  lo que Dios está haciendo a través de Sinew.
+                  experiencias, nuevos recursos y nuevos testimonios que ayuden a contar
+                  lo que Dios está haciendo a través de SINEW.
                 </p>
               </div>
 
